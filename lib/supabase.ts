@@ -8,6 +8,12 @@ function required(name: string): string {
   return value;
 }
 
+// supabase-js issues its queries via fetch, which Next.js caches by default in
+// Server Components. That would serve stale reads as data changes, so force
+// every Supabase request to bypass the Next fetch cache.
+const noStoreFetch = (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+  fetch(input, { ...init, cache: "no-store" });
+
 let adminClient: SupabaseClient | null = null;
 
 /**
@@ -19,7 +25,10 @@ export function supabaseAdmin(): SupabaseClient {
   adminClient = createClient(
     required("NEXT_PUBLIC_SUPABASE_URL"),
     required("SUPABASE_SERVICE_ROLE_KEY"),
-    { auth: { persistSession: false, autoRefreshToken: false } }
+    {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { fetch: noStoreFetch },
+    }
   );
   return adminClient;
 }

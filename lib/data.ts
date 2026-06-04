@@ -3,7 +3,8 @@
 // from a client component.
 import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
-import type { KbArticle, Ticket, TicketMessage, EventType } from "./types";
+import { embed, toVector } from "./embeddings";
+import type { KbArticle, Ticket, TicketMessage, EventType, EvalRun } from "./types";
 
 // ---------------------------------------------------------------------------
 // Knowledge base
@@ -123,4 +124,192 @@ export async function resolveTicket(ticketId: string): Promise<void> {
     .eq("id", ticketId);
   if (error) throw new Error(`resolveTicket: ${error.message}`);
   await logEvent("resolution", ticketId, { ai_assisted: true });
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge Loop
+// ---------------------------------------------------------------------------
+export async function getResolvedTickets(limit = 12): Promise<Ticket[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("tickets")
+    .select("*")
+    .eq("status", "resolved")
+    .order("resolved_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`getResolvedTickets: ${error.message}`);
+  return (data ?? []) as Ticket[];
+}
+
+export async function getDraftArticles(): Promise<KbArticle[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("kb_articles")
+    .select("*")
+    .eq("status", "draft")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`getDraftArticles: ${error.message}`);
+  return (data ?? []) as KbArticle[];
+}
+
+export interface DraftInput {
+  title: string;
+  body: string;
+  category: string;
+  tags: string[];
+}
+
+export async function createDraftFromTicket(ticketId: string, draft: DraftInput): Promise<string> {
+  const id = randomUUID();
+  const { error } = await supabaseAdmin().from("kb_articles").insert({
+    id,
+    title: draft.title,
+    body: draft.body,
+    category: draft.category,
+    tags: draft.tags,
+    status: "draft",
+    source: "ticket",
+    created_from_ticket_id: ticketId,
+  });
+  if (error) throw new Error(`createDraftFromTicket: ${error.message}`);
+  return id;
+}
+
+/** Publish a draft: embed it, flip to published, log the event. Closes the loop. */
+export async function publishArticle(articleId: string): Promise<void> {
+  const article = await getArticle(articleId);
+  if (!article) throw new Error("Article not found");
+  const [embedding] = await embed([`${article.title}\n\n${article.body}`], "document");
+  const { error } = await supabaseAdmin()
+    .from("kb_articles")
+    .update({ status: "published", published_at: new Date().toISOString(), embedding: toVector(embedding) })
+    .eq("id", articleId);
+  if (error) throw new Error(`publishArticle: ${error.message}`);
+  await logEvent("kb_publish", null, {
+    article_id: articleId,
+    title: article.title,
+    from_ticket: article.created_from_ticket_id,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Ops dashboard
+// ---------------------------------------------------------------------------
+export interface MetricSet {
+  total: number;
+  deflectionRate: number;
+  automationRate: number;
+  avgCsat: number | null;
+}
+export interface DashboardData {
+  all: MetricSet;
+  today: MetricSet;
+  volume: { day: string; tickets: number }[];
+  topIntents: { name: string; count: number; pct: number }[];
+  kbFromTickets: number;
+}
+
+interface MetricRow {
+  status: string;
+  was_deflected: boolean;
+  was_ai_assisted: boolean;
+  csat: number | null;
+  intent: string | null;
+  created_at: string;
+}
+
+function summarize(rows: MetricRow[]): MetricSet {
+  const total = rows.length;
+  const deflected = rows.filter((r) => r.was_deflected || r.status === "deflected").length;
+  const ai = rows.filter((r) => r.was_ai_assisted).length;
+  const csats = rows.map((r) => r.csat).filter((c): c is number => typeof c === "number");
+  return {
+    total,
+    deflectionRate: total ? deflected / total : 0,
+    automationRate: total ? ai / total : 0,
+    avgCsat: csats.length ? csats.reduce((a, b) => a + b, 0) / csats.length : null,
+  };
+}
+
+export async function getDashboardData(): Promise<DashboardData> {
+  const { data, error } = await supabaseAdmin()
+    .from("tickets")
+    .select("status,was_deflected,was_ai_assisted,csat,intent,created_at");
+  if (error) throw new Error(`getDashboardData: ${error.message}`);
+  const rows = (data ?? []) as MetricRow[];
+
+  const midnight = new Date();
+  midnight.setHours(0, 0, 0, 0);
+
+  const volume: { day: string; tickets: number }[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - i);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 1);
+    const count = rows.filter((r) => {
+      const t = new Date(r.created_at);
+      return t >= start && t < end;
+    }).length;
+    volume.push({ day: `${start.getMonth() + 1}/${start.getDate()}`, tickets: count });
+  }
+
+  const intentCounts = new Map<string, number>();
+  for (const r of rows) if (r.intent) intentCounts.set(r.intent, (intentCounts.get(r.intent) ?? 0) + 1);
+  const topIntents = [...intentCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([name, count]) => ({ name, count, pct: rows.length ? Math.round((count / rows.length) * 100) : 0 }));
+
+  const { count: kbFromTickets } = await supabaseAdmin()
+    .from("kb_articles")
+    .select("*", { count: "exact", head: true })
+    .eq("source", "ticket")
+    .eq("status", "published");
+
+  return {
+    all: summarize(rows),
+    today: summarize(rows.filter((r) => new Date(r.created_at) >= midnight)),
+    volume,
+    topIntents,
+    kbFromTickets: kbFromTickets ?? 0,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Evals
+// ---------------------------------------------------------------------------
+export interface EvalResultRow {
+  question: string;
+  expected: string;
+  grounded: boolean;
+  pass: boolean;
+  similarity: number;
+}
+
+export async function insertEvalRun(summary: {
+  total: number;
+  grounded: number;
+  passed: number;
+  avg_similarity: number;
+  results: EvalResultRow[];
+}): Promise<void> {
+  const { error } = await supabaseAdmin().from("eval_runs").insert({
+    total: summary.total,
+    grounded: summary.grounded,
+    passed: summary.passed,
+    avg_similarity: summary.avg_similarity,
+    meta: { results: summary.results },
+  });
+  if (error) throw new Error(`insertEvalRun: ${error.message}`);
+}
+
+export async function getLatestEvalRun(): Promise<EvalRun | null> {
+  const { data, error } = await supabaseAdmin()
+    .from("eval_runs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`getLatestEvalRun: ${error.message}`);
+  return (data as EvalRun) ?? null;
 }
