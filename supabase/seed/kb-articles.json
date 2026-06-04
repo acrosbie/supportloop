@@ -1,0 +1,128 @@
+[
+  {
+    "title": "Reset your Orbit password",
+    "body": "If you can't sign in, go to the Orbit login page and select \"Forgot password.\" Enter the email on your account and we'll send a reset link that stays valid for 60 minutes. Open the link, choose a new password (at least 10 characters), and you'll be signed in automatically.\n\nIf the email doesn't arrive within a few minutes, check your spam folder and confirm you used the address tied to your Orbit account. Accounts managed through SSO can't reset a password here — your administrator controls those credentials.",
+    "category": "Account",
+    "tags": ["password", "login", "account access"]
+  },
+  {
+    "title": "Fix a microphone that isn't working in meetings",
+    "body": "When others can't hear you, first check the in-meeting mic button isn't muted (a red line means muted). Then open Settings → Audio and pick the correct input device — laptops often default to the wrong one when a headset is plugged in.\n\nIf the right device is selected and the input meter still doesn't move when you speak, your operating system may be blocking microphone access. On Windows, enable mic access under Privacy settings; on macOS, allow Orbit under System Settings → Privacy & Security → Microphone, then restart Orbit.",
+    "category": "Audio & Video",
+    "tags": ["microphone", "audio", "no sound"]
+  },
+  {
+    "title": "Others can't hear you: audio troubleshooting",
+    "body": "If participants say you're cutting out or silent, test your audio in Settings → Audio with \"Test Mic.\" A flat input meter points to a hardware or permissions issue; choppy audio usually means an unstable network.\n\nSwitching from Wi-Fi to a wired connection, closing bandwidth-heavy apps, and moving closer to your router all reduce dropouts. If only some people can't hear you, ask them to check their own speaker selection and volume before assuming the problem is on your end.",
+    "category": "Audio & Video",
+    "tags": ["audio", "microphone", "dropouts"]
+  },
+  {
+    "title": "Turn your camera on or off and fix camera issues",
+    "body": "Use the camera button in the meeting toolbar to start or stop video. If your camera shows a black screen, make sure no other app (another video tool, your system camera app) is using it — only one program can access the camera at a time.\n\nIn Settings → Video you can pick which camera Orbit uses and preview it. If nothing appears, confirm Orbit has camera permission in your operating system's privacy settings and reconnect any external webcam.",
+    "category": "Audio & Video",
+    "tags": ["camera", "video", "webcam"]
+  },
+  {
+    "title": "Reduce echo and background noise",
+    "body": "Echo is almost always caused by a participant whose speakers are feeding back into their microphone. Ask everyone to use headphones; that single change removes most echo. Orbit also offers automatic echo cancellation under Settings → Audio.\n\nFor background noise, enable \"Suppress background noise\" and set it to High in noisy environments. Avoid having two devices joined to the same meeting in one room, which creates a loud feedback loop.",
+    "category": "Audio & Video",
+    "tags": ["echo", "noise", "feedback"]
+  },
+  {
+    "title": "Why a meeting shows \"poor network\" warnings",
+    "body": "The \"poor network\" indicator appears when Orbit detects high latency or packet loss between you and our servers. Video is the first thing to degrade; Orbit automatically lowers resolution to keep audio stable.\n\nTo improve your connection, switch to a wired Ethernet connection, sit closer to your router, disconnect other devices that are streaming, and quit large downloads. If problems persist on a corporate network, your IT team may need to prioritize Orbit traffic.",
+    "category": "Audio & Video",
+    "tags": ["network", "connection", "lag"]
+  },
+  {
+    "title": "Refund policy and how to request a refund",
+    "body": "Orbit offers a full refund within 14 days of a new subscription or plan upgrade if you haven't used the paid features extensively. Refunds are issued to the original payment method and typically take 5–10 business days to appear.\n\nTo request one, go to Billing → Payment history, find the charge, and select \"Request refund,\" or reply to your receipt email. Renewals are also eligible within 14 days of the renewal date. Refunds outside this window are reviewed case by case.",
+    "category": "Billing",
+    "tags": ["refund", "billing", "money back"]
+  },
+  {
+    "title": "Why was I charged twice? Duplicate charges",
+    "body": "A second charge on the same day is usually a temporary authorization hold, not a real charge — it disappears on its own within a few business days. You can confirm by checking whether both lines show as \"posted\" or one shows as \"pending\" in your bank statement.\n\nIf two identical charges both post and remain, that's a genuine duplicate. Open Billing → Payment history; if you see two completed payments for the same period, request a refund on the extra one and it will be reversed to your original payment method.",
+    "category": "Billing",
+    "tags": ["double charge", "duplicate", "billing"]
+  },
+  {
+    "title": "Update your billing or payment method",
+    "body": "To change the card on file, go to Billing → Payment method and select \"Update.\" Enter the new card details; the change applies to your next renewal immediately, and any failed payment can be retried on the new card right away.\n\nIf a renewal failed because a card expired, update the method and use \"Retry payment\" to restore access without waiting for the next cycle. Billing contacts and invoices can be managed from the same page.",
+    "category": "Plans & Billing",
+    "tags": ["payment method", "card", "billing"]
+  },
+  {
+    "title": "Upgrade, downgrade, or change your plan",
+    "body": "You can change plans anytime under Billing → Plan. Upgrades take effect immediately and are prorated, so you only pay the difference for the remainder of the current cycle. Your new limits (participants, cloud storage, meeting length) apply at once.\n\nDowngrades take effect at the end of your current billing period so you keep what you paid for. If a downgrade would put you under a usage limit — for example, more recordings than the lower plan allows — Orbit warns you before confirming.",
+    "category": "Plans & Billing",
+    "tags": ["upgrade", "downgrade", "plan"]
+  },
+  {
+    "title": "Cancel your subscription",
+    "body": "To cancel, go to Billing → Plan and select \"Cancel subscription.\" You'll keep paid features until the end of the period you've already paid for; we don't prorate cancellations. After that date your account moves to the Free plan rather than being deleted, so your data stays available.\n\nIf you cancel by mistake you can resubscribe before the period ends to avoid any interruption. Cancelling within 14 days of a charge may also qualify for a refund under our refund policy.",
+    "category": "Plans & Billing",
+    "tags": ["cancel", "subscription", "billing"]
+  },
+  {
+    "title": "Cloud recording storage limits",
+    "body": "Cloud recording storage depends on your plan: Free includes 1 GB, Pro includes 25 GB, and Business includes 100 GB per host. When you approach the limit, Orbit emails the host and new recordings may be paused until you free up space or upgrade.\n\nTo manage storage, open Recordings, sort by size, and delete recordings you've already downloaded. Deleted cloud recordings move to Trash for 30 days before being permanently removed, so you can restore one if you delete it by mistake.",
+    "category": "Recording",
+    "tags": ["recording", "storage", "limits"]
+  },
+  {
+    "title": "Find and download your cloud recordings",
+    "body": "Cloud recordings appear under the Recordings tab once processing finishes, usually within about twice the meeting's length. Each entry includes the video file, an audio-only file, and a chat transcript when chat was used.\n\nTo download, open a recording and select the download icon next to the file you want. You can also copy a shareable link with optional passcode and expiry. Recordings you start locally are saved to your own computer instead and won't appear in the cloud list.",
+    "category": "Recording",
+    "tags": ["recording", "download", "cloud"]
+  },
+  {
+    "title": "Share your screen in a meeting",
+    "body": "Select \"Share\" in the meeting toolbar and choose a whole screen, a single window, or a specific browser tab. Sharing a tab is best for video because it includes high-quality audio; sharing a window keeps the rest of your desktop private.\n\nIf \"Share\" is greyed out, the host may have restricted sharing — ask them to allow participant sharing. On macOS you must grant Orbit Screen Recording permission in System Settings the first time, then restart Orbit.",
+    "category": "Meetings",
+    "tags": ["screen share", "presentation", "sharing"]
+  },
+  {
+    "title": "Meeting time limits on Free and Pro plans",
+    "body": "On the Free plan, meetings with three or more participants end automatically after 40 minutes; one-on-one meetings are unlimited. You can simply start a new meeting to continue. Pro and Business plans remove the 40-minute limit entirely, with meetings able to run up to 30 hours.\n\nIf your meetings keep ending at 40 minutes, check Billing → Plan to confirm which plan is active for the host — the limit is based on the host's plan, not the participants'.",
+    "category": "Meetings",
+    "tags": ["time limit", "40 minutes", "meeting length"]
+  },
+  {
+    "title": "Schedule a meeting and invite people",
+    "body": "From the Home tab select \"Schedule,\" set a date, time, and duration, then choose options like requiring a passcode or enabling the waiting room. Saving creates a meeting with a unique join link you can copy or send.\n\nOrbit can add the event to Google or Outlook calendars and include the join link automatically. Invitees don't need an account to join from a link — they can use the web client — though signing in unlocks features like saving chat and reactions.",
+    "category": "Meetings",
+    "tags": ["schedule", "invite", "calendar"]
+  },
+  {
+    "title": "Join a meeting from a link",
+    "body": "Click the meeting link and Orbit opens the desktop app if it's installed, or offers to join from your browser with no download required. Enter your name, allow camera and microphone access when prompted, and you'll land in the meeting or the waiting room if the host enabled one.\n\nIf the host hasn't started the meeting yet, you'll see a waiting screen that updates automatically. Joining by phone is also possible using the dial-in number and meeting ID shown on the invite.",
+    "category": "Getting Started",
+    "tags": ["join", "meeting link", "waiting room"]
+  },
+  {
+    "title": "System requirements and supported devices",
+    "body": "Orbit runs on Windows 10+ and macOS 11+, on the latest versions of Chrome, Edge, Firefox, and Safari for the web client, and on recent iOS and Android devices. A dual-core CPU and 4 GB of RAM are enough for standard meetings; HD video and large galleries benefit from a quad-core CPU.\n\nFor the best experience, keep the app updated and close other video applications, which compete for the camera and CPU. A stable connection of 3 Mbps up and down comfortably supports HD video.",
+    "category": "Getting Started",
+    "tags": ["requirements", "devices", "supported"]
+  },
+  {
+    "title": "Set up Single Sign-On (SSO)",
+    "body": "Business plan admins can enable SSO under Admin → Security → Single Sign-On. Orbit supports SAML 2.0 with identity providers such as Okta, Entra ID, and Google Workspace. You'll provide your IdP metadata URL and map email, first name, and last name attributes.\n\nAfter enabling SSO, members in your verified domain sign in through your provider instead of a password. Turn on \"Require SSO\" to enforce it for everyone in the organization. Test with a single account before rolling it out broadly.",
+    "category": "Security & Admin",
+    "tags": ["sso", "saml", "login"]
+  },
+  {
+    "title": "Enable two-factor authentication (2FA)",
+    "body": "To add 2FA to your own account, go to Settings → Security → Two-factor authentication and choose an authenticator app or SMS. Scan the QR code with an app like Authy or Google Authenticator, enter the six-digit code to confirm, and save your backup codes somewhere safe.\n\nAdmins can require 2FA for an entire organization under Admin → Security. If you lose your device, use a backup code to sign in, or ask an admin to reset 2FA on your account.",
+    "category": "Security & Admin",
+    "tags": ["2fa", "security", "authentication"]
+  },
+  {
+    "title": "Invite and manage team members",
+    "body": "Admins manage people under Admin → Members. Select \"Invite\" and enter email addresses to send invitations; pending invites can be resent or revoked. Each member can be assigned a role — Member, Admin, or Owner — which controls access to billing and security settings.\n\nTo free up a paid seat, remove a member or change their role; seats update on your next invoice. Removing a member doesn't delete meetings they hosted, but their cloud recordings may be reassigned to an admin.",
+    "category": "Security & Admin",
+    "tags": ["team", "members", "admin"]
+  }
+]

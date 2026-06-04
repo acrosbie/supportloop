@@ -1,0 +1,90 @@
+[
+  {
+    "title": "How do I reset my password if I forgot it?",
+    "body": "I can't remember my password and I'm locked out of my account. What's the fastest way back in?",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "Use \"Forgot password\" on the login page — you'll get a reset link valid for 60 minutes. If it doesn't arrive, check spam and make sure you're using the email tied to your account. Note that SSO accounts are reset by your admin, not here.",
+    "answer_source": "user"
+  },
+  {
+    "title": "People can't hear me even though my mic isn't muted",
+    "body": "My mic button looks fine but everyone says I'm silent. Already tried rejoining twice.",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "Open Settings → Audio and confirm the correct input device is selected — a plugged-in headset often switches the default. If the input meter still doesn't move when you talk, your OS is probably blocking mic access; grant Orbit microphone permission in privacy settings and restart.",
+    "answer_source": "user"
+  },
+  {
+    "title": "Can I get a written transcript of a past meeting?",
+    "body": "We recorded an all-hands and I'd love a text transcript I can edit and share, not just the video. Is that possible in Orbit?",
+    "status": "open",
+    "has_kb_gap": true
+  },
+  {
+    "title": "How do I create breakout rooms for group discussions?",
+    "body": "I run workshops and want to split 30 people into smaller rooms and pull them back together. Can't find where to set this up.",
+    "status": "open",
+    "has_kb_gap": true
+  },
+  {
+    "title": "Do you support custom virtual backgrounds?",
+    "body": "Is there a way to blur or replace my background with a custom image during calls?",
+    "status": "open",
+    "has_kb_gap": true
+  },
+  {
+    "title": "What are the cloud recording storage limits on Pro?",
+    "body": "Trying to figure out how much recording space I get before I have to delete things.",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "Pro includes 25 GB of cloud recording storage per host (Free is 1 GB, Business is 100 GB). When you get close, Orbit emails the host and may pause new recordings until you free up space. Deleted recordings sit in Trash for 30 days so you can restore them.",
+    "answer_source": "user"
+  },
+  {
+    "title": "How do I stop meetings from ending after 40 minutes?",
+    "body": "Our calls keep cutting off at 40 minutes and it's really disruptive.",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "The 40-minute cap applies to group meetings on the Free plan. It's based on the host's plan, so upgrade the host to Pro or Business to remove it — those plans allow meetings up to 30 hours. As a quick workaround you can just start a fresh meeting to continue.",
+    "answer_source": "user"
+  },
+  {
+    "title": "How do I set up SSO with Okta?",
+    "body": "We're on Business and want everyone to log in through Okta. Where do I start?",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "An admin enables it under Admin → Security → Single Sign-On. Orbit supports SAML 2.0 with Okta — provide your IdP metadata URL and map the email, first name, and last name attributes. Test with one account, then turn on \"Require SSO\" to enforce it org-wide.",
+    "answer_source": "user"
+  },
+  {
+    "title": "Best way to reduce echo when several teammates are in one room?",
+    "body": "When two of us join from the same conference room there's a loud echo. How do we fix it?",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "Echo from one room almost always means two devices are picking up each other's audio. Have everyone wear headphones, or join from a single device in that room. Enabling echo cancellation and background-noise suppression in Settings → Audio helps too.",
+    "answer_source": "user"
+  },
+  {
+    "title": "How do I share just one browser tab with its audio?",
+    "body": "I want to play a video in a call but only share that one tab, with sound.",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "Click Share and choose the specific browser tab rather than a window or full screen — tab sharing includes high-quality tab audio, which is ideal for playing video. If Share is greyed out, ask the host to allow participant sharing.",
+    "answer_source": "user"
+  },
+  {
+    "title": "Can I get a refund if I upgraded by mistake?",
+    "body": "I accidentally upgraded to Business yesterday and meant to stay on Pro.",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "Yes — upgrades are refundable within 14 days if the paid features haven't been used much. Go to Billing → Payment history, find the charge, and select \"Request refund,\" or reply to your receipt. It goes back to your original payment method in about 5–10 business days.",
+    "answer_source": "user"
+  },
+  {
+    "title": "How do I require 2FA for my whole organization?",
+    "body": "Security wants every member to have two-factor turned on. Is there an org-wide setting?",
+    "status": "open",
+    "has_kb_gap": false
+  }
+]
