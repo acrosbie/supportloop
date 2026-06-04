@@ -19,7 +19,8 @@ export function decideGrounding(
 ): GroundingDecision {
   const topSimilarity = matches[0]?.similarity ?? 0;
   const grounded = topSimilarity >= threshold;
-  // When grounded, cite anything within a small band of the top hit.
-  const sources = grounded ? matches.filter((m) => m.similarity >= threshold - 0.1) : [];
+  // Cite only confident matches (at/above threshold) so citation chips never
+  // imply an article that wasn't actually relevant.
+  const sources = grounded ? matches.filter((m) => m.similarity >= threshold) : [];
   return { grounded, topSimilarity, threshold, sources };
 }

@@ -36,3 +36,34 @@ export function textOf(message: { content: Array<{ type: string; text?: string }
     .map((b) => b.text ?? "")
     .join("");
 }
+
+export interface StreamParams {
+  model: string;
+  max_tokens: number;
+  system?: string;
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+}
+
+/**
+ * Stream a Claude message as a ReadableStream of UTF-8 text deltas — for
+ * wiring directly into a Response on chat-like surfaces.
+ */
+export function streamMessageText(params: StreamParams): ReadableStream<Uint8Array> {
+  const messageStream = anthropic().messages.stream(params);
+  const encoder = new TextEncoder();
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const event of messageStream) {
+          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            controller.enqueue(encoder.encode(event.delta.text));
+          }
+        }
+      } catch {
+        controller.enqueue(encoder.encode("\n\n[The answer was interrupted. Please try again.]"));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+}

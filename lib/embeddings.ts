@@ -13,6 +13,27 @@ export function toVector(values: number[]): string {
   return `[${values.join(",")}]`;
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * POST to Voyage with retry/backoff. The free tier is rate-limited to 3 RPM
+ * until a payment method is added, so 429s are expected under bursty use —
+ * back off and retry rather than failing the whole request.
+ */
+async function voyageFetch(apiKey: string, body: unknown, attempt = 0): Promise<Response> {
+  const res = await fetch("https://api.voyageai.com/v1/embeddings", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  });
+  if ((res.status === 429 || res.status >= 500) && attempt < 4) {
+    const wait = Math.min(20000, 1000 * 2 ** attempt) + Math.floor(Math.random() * 400);
+    await sleep(wait);
+    return voyageFetch(apiKey, body, attempt + 1);
+  }
+  return res;
+}
+
 /**
  * Embed a batch of texts. `inputType` lets Voyage optimize asymmetrically:
  * "document" for stored content, "query" for search queries.
@@ -26,11 +47,7 @@ export async function embed(texts: string[], inputType: InputType = "document"):
   const BATCH = 100;
   for (let i = 0; i < texts.length; i += BATCH) {
     const batch = texts.slice(i, i + BATCH);
-    const res = await fetch("https://api.voyageai.com/v1/embeddings", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ input: batch, model: EMBED_MODEL, input_type: inputType }),
-    });
+    const res = await voyageFetch(apiKey, { input: batch, model: EMBED_MODEL, input_type: inputType });
     if (!res.ok) {
       throw new Error(`Voyage embeddings failed (${res.status}): ${await res.text()}`);
     }
