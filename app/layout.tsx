@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
-import TopBar from "@/components/TopBar";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -18,22 +16,18 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "SupportLoop — AI Support Showcase",
   description:
-    "A closed-loop AI customer-support flywheel: RAG self-service → escalation → agent-assist → knowledge generation → ops analytics → community. Demo configured for a fictional customer, Orbit.",
+    "A closed-loop AI customer-support platform: RAG self-service → escalation → agent-assist → knowledge generation → ops analytics → community. Demo configured for a fictional customer, Orbit.",
 };
 
+// Root layout intentionally carries no chrome — each role workspace (/user,
+// /agent, /ops) and the overview (/) provide their own skin.
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <TopBar />
-            <main className="min-w-0 flex-1">{children}</main>
-          </div>
-        </div>
+        {children}
       </body>
     </html>
   );
