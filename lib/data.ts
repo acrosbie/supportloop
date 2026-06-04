@@ -4,7 +4,15 @@
 import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
 import { embed, toVector } from "./embeddings";
-import type { KbArticle, Ticket, TicketMessage, EventType, EvalRun } from "./types";
+import type {
+  KbArticle,
+  Ticket,
+  TicketMessage,
+  EventType,
+  EvalRun,
+  CommunityQuestion,
+  CommunityAnswer,
+} from "./types";
 
 // ---------------------------------------------------------------------------
 // Knowledge base
@@ -312,4 +320,99 @@ export async function getLatestEvalRun(): Promise<EvalRun | null> {
     .maybeSingle();
   if (error) throw new Error(`getLatestEvalRun: ${error.message}`);
   return (data as EvalRun) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Community Q&A
+// ---------------------------------------------------------------------------
+export type CommunityQuestionWithCount = CommunityQuestion & { answerCount: number };
+
+export async function getCommunityQuestions(): Promise<CommunityQuestionWithCount[]> {
+  const { data: qs, error } = await supabaseAdmin()
+    .from("community_questions")
+    .select("*")
+    .order("has_kb_gap", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`getCommunityQuestions: ${error.message}`);
+  const { data: ans } = await supabaseAdmin().from("community_answers").select("question_id");
+  const counts = new Map<string, number>();
+  for (const a of ans ?? []) counts.set(a.question_id, (counts.get(a.question_id) ?? 0) + 1);
+  return (qs ?? []).map((q) => ({ ...(q as CommunityQuestion), answerCount: counts.get(q.id) ?? 0 }));
+}
+
+export async function getCommunityQuestion(id: string): Promise<CommunityQuestion | null> {
+  const { data, error } = await supabaseAdmin().from("community_questions").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(`getCommunityQuestion: ${error.message}`);
+  return (data as CommunityQuestion) ?? null;
+}
+
+export async function getCommunityAnswers(questionId: string): Promise<CommunityAnswer[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("community_answers")
+    .select("*")
+    .eq("question_id", questionId)
+    .order("accepted", { ascending: false })
+    .order("upvotes", { ascending: false })
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`getCommunityAnswers: ${error.message}`);
+  return (data ?? []) as CommunityAnswer[];
+}
+
+export async function createAiAnswer(questionId: string, body: string): Promise<string> {
+  const id = randomUUID();
+  const { error } = await supabaseAdmin()
+    .from("community_answers")
+    .insert({ id, question_id: questionId, body, source: "ai", accepted: false, upvotes: 0 });
+  if (error) throw new Error(`createAiAnswer: ${error.message}`);
+  return id;
+}
+
+export async function acceptAnswer(answerId: string): Promise<void> {
+  const { data: ans, error: getErr } = await supabaseAdmin()
+    .from("community_answers")
+    .select("question_id")
+    .eq("id", answerId)
+    .maybeSingle();
+  if (getErr) throw new Error(`acceptAnswer(get): ${getErr.message}`);
+  if (!ans) throw new Error("Answer not found");
+  const { error } = await supabaseAdmin().from("community_answers").update({ accepted: true }).eq("id", answerId);
+  if (error) throw new Error(`acceptAnswer: ${error.message}`);
+  await supabaseAdmin().from("community_questions").update({ status: "answered" }).eq("id", ans.question_id);
+  await logEvent("community_answer", null, { question_id: ans.question_id, answer_id: answerId });
+}
+
+export async function upvoteAnswer(answerId: string): Promise<number> {
+  const { data: ans, error: getErr } = await supabaseAdmin()
+    .from("community_answers")
+    .select("upvotes")
+    .eq("id", answerId)
+    .maybeSingle();
+  if (getErr) throw new Error(`upvoteAnswer(get): ${getErr.message}`);
+  if (!ans) throw new Error("Answer not found");
+  const next = (ans.upvotes ?? 0) + 1;
+  const { error } = await supabaseAdmin().from("community_answers").update({ upvotes: next }).eq("id", answerId);
+  if (error) throw new Error(`upvoteAnswer: ${error.message}`);
+  return next;
+}
+
+/** Weak retrieval → flag the gap and seed a draft stub in the Knowledge Loop. */
+export async function flagKnowledgeGap(questionId: string): Promise<string> {
+  const q = await getCommunityQuestion(questionId);
+  if (!q) throw new Error("Question not found");
+  await supabaseAdmin().from("community_questions").update({ has_kb_gap: true }).eq("id", questionId);
+  await logEvent("gap_flagged", null, { question_id: questionId, title: q.title });
+
+  const id = randomUUID();
+  const { error } = await supabaseAdmin().from("kb_articles").insert({
+    id,
+    title: q.title,
+    body: `Draft stub from a community knowledge gap. Write the answer here.\n\nQuestion asked:\n${q.body}`,
+    category: "General",
+    tags: ["community-gap"],
+    status: "draft",
+    source: "community",
+    created_from_question_id: questionId,
+  });
+  if (error) throw new Error(`flagKnowledgeGap(draft): ${error.message}`);
+  return id;
 }
