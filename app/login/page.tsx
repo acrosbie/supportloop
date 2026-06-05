@@ -61,7 +61,13 @@ function LoginInner() {
         )}
 
         {/* Demo logins */}
-        <div className="mt-6 space-y-2">
+        <div className="mb-2 mt-6 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
+          One-click demo logins
+          <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] normal-case text-accent-strong">
+            no password — click to enter
+          </span>
+        </div>
+        <div className="space-y-2">
           {DEMO_ACCOUNTS.map((acc) => (
             <button
               key={acc.email}
