@@ -9,8 +9,9 @@ export async function POST(req: NextRequest) {
   let ticketId: string;
   let action: string;
   let body: string | undefined;
+  let internal: boolean | undefined;
   try {
-    ({ ticketId, action, body } = await req.json());
+    ({ ticketId, action, body, internal } = await req.json());
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -21,11 +22,11 @@ export async function POST(req: NextRequest) {
   try {
     if (action === "send") {
       if (!body?.trim()) return Response.json({ error: "Reply body is empty" }, { status: 400 });
-      await appendAgentReply(ticketId, body);
+      await appendAgentReply(ticketId, body, !!internal);
     } else if (action === "resolve") {
       await resolveTicket(ticketId);
     } else if (action === "send_resolve") {
-      if (body?.trim()) await appendAgentReply(ticketId, body);
+      if (body?.trim()) await appendAgentReply(ticketId, body, !!internal);
       await resolveTicket(ticketId);
     } else {
       return Response.json({ error: `Unknown action: ${action}` }, { status: 400 });

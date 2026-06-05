@@ -34,6 +34,13 @@ export interface Ticket {
   was_ai_assisted: boolean;
   csat: number | null;
   is_hero: boolean;
+  requester_id: string | null;
+  requester_email: string | null;
+  priority: string;
+  assignee_id: string | null;
+  tags: string[];
+  sla_due_at: string | null;
+  first_response_at: string | null;
   created_at: string;
   resolved_at: string | null;
 }
@@ -45,6 +52,7 @@ export interface TicketMessage {
   ticket_id: string;
   role: MessageRole;
   body: string;
+  internal: boolean;
   created_at: string;
 }
 
@@ -97,3 +105,19 @@ export interface EvalRun {
 
 // Persona switcher (top bar) — orients a visitor across surfaces. Cosmetic in the demo.
 export type Persona = "customer" | "agent" | "ops";
+
+export interface Profile {
+  id: string;
+  role: "customer" | "agent" | "admin";
+  display_name: string | null;
+  avatar_url: string | null;
+  created_at: string;
+}
+
+export interface CannedResponse {
+  id: string;
+  title: string;
+  body: string;
+  category: string | null;
+  created_at: string;
+}

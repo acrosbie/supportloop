@@ -127,6 +127,34 @@ const TICKET_TEMPLATES: {
 const SENTIMENTS_POSITIVE = ["satisfied", "neutral", "neutral", "satisfied"];
 const SENTIMENTS_NEGATIVE = ["frustrated", "urgent", "confused", "frustrated"];
 
+const CANNED = [
+  {
+    title: "Ask for more details",
+    body: "Thanks for reaching out! Could you share a bit more — which device and Orbit version you're on, and the exact steps that led to the issue? That helps me get you sorted quickly.",
+    category: "General",
+  },
+  {
+    title: "Password reset steps",
+    body: 'You can reset your password from the login page via "Forgot password" — the link stays valid for 60 minutes. If it doesn\'t arrive, check spam and confirm you\'re using the email on your account.',
+    category: "Account",
+  },
+  {
+    title: "Refund started",
+    body: "I've started a refund to your original payment method. It typically takes 5–10 business days to appear, and you'll get a confirmation email shortly.",
+    category: "Billing",
+  },
+  {
+    title: "Escalating to engineering",
+    body: "Thanks for your patience — I've escalated this to our engineering team and flagged it as a priority. I'll follow up here as soon as I have an update.",
+    category: "Technical",
+  },
+  {
+    title: "Resolved — anything else?",
+    body: "Glad that's sorted! I'll mark this resolved, but reply any time if you need a hand with anything else. Thanks for using Orbit.",
+    category: "General",
+  },
+];
+
 interface GenTicket {
   id: string;
   subject: string;
@@ -143,6 +171,11 @@ interface GenTicket {
   is_hero: boolean;
   requester_id: string | null;
   requester_email: string | null;
+  priority: string;
+  assignee_id: string | null;
+  tags: string[];
+  sla_due_at: string | null;
+  first_response_at: string | null;
   created_at: string;
   resolved_at: string | null;
 }
@@ -218,6 +251,11 @@ function generateTickets(): { tickets: GenTicket[]; messages: unknown[]; events:
       is_hero: false,
       requester_id: null,
       requester_email: null,
+      priority: "normal",
+      assignee_id: null,
+      tags: [],
+      sla_due_at: null,
+      first_response_at: null,
       created_at: created,
       resolved_at: resolvedAt,
     });
@@ -277,6 +315,11 @@ function buildHeroTicket(): { ticket: GenTicket; messages: unknown[] } {
     is_hero: true,
     requester_id: null,
     requester_email: null,
+    priority: "high",
+    assignee_id: null,
+    tags: ["recording", "transcript"],
+    sla_due_at: new Date(Date.now() + 6 * 3600_000).toISOString(),
+    first_response_at: null,
     created_at: created,
     resolved_at: null,
   };
@@ -332,6 +375,7 @@ export async function seedDatabase(): Promise<Record<string, number>> {
     "community_answers",
     "community_questions",
     "eval_runs",
+    "canned_responses",
     "tickets",
     "kb_articles",
   ]) {
@@ -366,6 +410,26 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   hero.ticket.requester_email = "customer@supportloop.demo";
   tickets.push(hero.ticket);
   for (const m of hero.messages) messages.push(m);
+
+  // Case-management enrichment: priority, tags, SLA, first response, assignment.
+  const agentId = demoIds.agent ?? null;
+  const tagFor = (intent: string) => intent.split(/[ /&]+/)[0].toLowerCase();
+  const slaHours = (p: string) => (p === "urgent" ? 2 : p === "high" ? 8 : p === "normal" ? 24 : 72);
+  for (const t of tickets) {
+    if (t.is_hero) continue;
+    const pr =
+      t.urgency === "high"
+        ? pick(["high", "urgent"])
+        : t.urgency === "medium"
+          ? pick(["normal", "normal", "high"])
+          : pick(["low", "normal"]);
+    t.priority = pr;
+    t.tags = Math.random() < 0.15 ? [tagFor(t.intent), "vip"] : [tagFor(t.intent)];
+    t.sla_due_at = new Date(new Date(t.created_at).getTime() + slaHours(pr) * 3600_000).toISOString();
+    t.first_response_at = t.status === "open" ? null : t.resolved_at;
+    if ((t.status === "open" || t.status === "assisted") && agentId && Math.random() < 0.45) t.assignee_id = agentId;
+  }
+
   await insertAll(sb, "tickets", tickets);
   await insertAll(sb, "ticket_messages", messages);
   await insertAll(sb, "events", events);
@@ -399,6 +463,10 @@ export async function seedDatabase(): Promise<Record<string, number>> {
     .filter((a): a is NonNullable<typeof a> => a !== null);
   if (answers.length) await insertAll(sb, "community_answers", answers);
 
+  // Canned responses (macros).
+  const canned = CANNED.map((c) => ({ id: randomUUID(), ...c }));
+  await insertAll(sb, "canned_responses", canned);
+
   return {
     kb_articles: kbRows.length,
     tickets: tickets.length,
@@ -407,5 +475,6 @@ export async function seedDatabase(): Promise<Record<string, number>> {
     community_questions: cqRows.length,
     community_answers: answers.length,
     demo_accounts: Object.keys(demoIds).length,
+    canned_responses: canned.length,
   };
 }

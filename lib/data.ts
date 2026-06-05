@@ -12,6 +12,8 @@ import type {
   EvalRun,
   CommunityQuestion,
   CommunityAnswer,
+  Profile,
+  CannedResponse,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -131,15 +133,16 @@ export async function saveTriage(ticketId: string, t: Triage): Promise<void> {
   if (error) throw new Error(`saveTriage: ${error.message}`);
 }
 
-export async function appendAgentReply(ticketId: string, body: string): Promise<void> {
+export async function appendAgentReply(ticketId: string, body: string, internal = false): Promise<void> {
   const { error: msgErr } = await supabaseAdmin()
     .from("ticket_messages")
-    .insert({ ticket_id: ticketId, role: "agent", body });
+    .insert({ ticket_id: ticketId, role: "agent", body, internal });
   if (msgErr) throw new Error(`appendAgentReply: ${msgErr.message}`);
-  const { error } = await supabaseAdmin()
-    .from("tickets")
-    .update({ was_ai_assisted: true, status: "assisted" })
-    .eq("id", ticketId);
+  if (internal) return; // internal notes don't change ticket state
+  const { data: t } = await supabaseAdmin().from("tickets").select("first_response_at").eq("id", ticketId).maybeSingle();
+  const patch: Record<string, unknown> = { was_ai_assisted: true, status: "assisted" };
+  if (t && !(t as { first_response_at: string | null }).first_response_at) patch.first_response_at = new Date().toISOString();
+  const { error } = await supabaseAdmin().from("tickets").update(patch).eq("id", ticketId);
   if (error) throw new Error(`appendAgentReply(update): ${error.message}`);
 }
 
@@ -433,4 +436,118 @@ export async function flagKnowledgeGap(questionId: string): Promise<string> {
   });
   if (error) throw new Error(`flagKnowledgeGap(draft): ${error.message}`);
   return id;
+}
+
+// ---------------------------------------------------------------------------
+// Case management — queue, properties, agents, macros (V3)
+// ---------------------------------------------------------------------------
+const OPEN_STATUSES = ["open", "assisted"];
+
+export interface QueueFilters {
+  view: string;
+  q?: string;
+  priority?: string;
+}
+
+export async function getQueue(filters: QueueFilters, meId: string): Promise<Ticket[]> {
+  let query = supabaseAdmin().from("tickets").select("*");
+  const v = filters.view;
+  if (v === "resolved") query = query.in("status", ["resolved", "deflected"]);
+  else if (v !== "all") query = query.in("status", OPEN_STATUSES);
+  if (v === "my-open") query = query.eq("assignee_id", meId);
+  if (v === "unassigned") query = query.is("assignee_id", null);
+  if (v === "urgent") query = query.in("priority", ["high", "urgent"]);
+  if (filters.priority) query = query.eq("priority", filters.priority);
+  if (filters.q) query = query.ilike("subject", `%${filters.q}%`);
+  query = query.order("is_hero", { ascending: false }).order("created_at", { ascending: false }).limit(100);
+  const { data, error } = await query;
+  if (error) throw new Error(`getQueue: ${error.message}`);
+  return (data ?? []) as Ticket[];
+}
+
+export async function getQueueCounts(meId: string): Promise<Record<string, number>> {
+  const { data, error } = await supabaseAdmin().from("tickets").select("status,assignee_id,priority");
+  if (error) throw new Error(`getQueueCounts: ${error.message}`);
+  const rows = (data ?? []) as { status: string; assignee_id: string | null; priority: string }[];
+  const openish = (r: { status: string }) => r.status === "open" || r.status === "assisted";
+  return {
+    "my-open": rows.filter((r) => openish(r) && r.assignee_id === meId).length,
+    unassigned: rows.filter((r) => openish(r) && !r.assignee_id).length,
+    urgent: rows.filter((r) => openish(r) && (r.priority === "high" || r.priority === "urgent")).length,
+    open: rows.filter(openish).length,
+    resolved: rows.filter((r) => r.status === "resolved" || r.status === "deflected").length,
+    all: rows.length,
+  };
+}
+
+export async function getAgents(): Promise<Profile[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("profiles")
+    .select("*")
+    .in("role", ["agent", "admin"])
+    .order("display_name");
+  if (error) throw new Error(`getAgents: ${error.message}`);
+  return (data ?? []) as Profile[];
+}
+
+export type TicketFields = Partial<Pick<Ticket, "priority" | "status" | "assignee_id" | "queue" | "tags">>;
+
+export async function updateTicketFields(id: string, fields: TicketFields): Promise<void> {
+  const patch: Record<string, unknown> = { ...fields };
+  if (fields.status === "resolved") patch.resolved_at = new Date().toISOString();
+  const { error } = await supabaseAdmin().from("tickets").update(patch).eq("id", id);
+  if (error) throw new Error(`updateTicketFields: ${error.message}`);
+  if (fields.status === "resolved") await logEvent("resolution", id, { manual: true });
+}
+
+export async function getCannedResponses(): Promise<CannedResponse[]> {
+  const { data, error } = await supabaseAdmin().from("canned_responses").select("*").order("title");
+  if (error) throw new Error(`getCannedResponses: ${error.message}`);
+  return (data ?? []) as CannedResponse[];
+}
+
+// ---------------------------------------------------------------------------
+// Admin (manage agents + KB)
+// ---------------------------------------------------------------------------
+export async function getAllProfiles(): Promise<Profile[]> {
+  const { data, error } = await supabaseAdmin().from("profiles").select("*").order("role").order("display_name");
+  if (error) throw new Error(`getAllProfiles: ${error.message}`);
+  return (data ?? []) as Profile[];
+}
+
+export async function setUserRole(userId: string, role: "customer" | "agent" | "admin"): Promise<void> {
+  await supabaseAdmin().auth.admin.updateUserById(userId, { app_metadata: { role } });
+  const { error } = await supabaseAdmin().from("profiles").update({ role }).eq("id", userId);
+  if (error) throw new Error(`setUserRole: ${error.message}`);
+}
+
+export async function getAllArticles(): Promise<KbArticle[]> {
+  const { data, error } = await supabaseAdmin().from("kb_articles").select("*").order("status").order("title");
+  if (error) throw new Error(`getAllArticles: ${error.message}`);
+  return (data ?? []) as KbArticle[];
+}
+
+export async function updateArticle(
+  id: string,
+  fields: { title?: string; body?: string; category?: string; tags?: string[] }
+): Promise<void> {
+  const article = await getArticle(id);
+  if (!article) throw new Error("Article not found");
+  const patch: Record<string, unknown> = { ...fields };
+  if (article.status === "published" && (fields.title || fields.body)) {
+    const [embedding] = await embed([`${fields.title ?? article.title}\n\n${fields.body ?? article.body}`], "document");
+    patch.embedding = toVector(embedding);
+  }
+  const { error } = await supabaseAdmin().from("kb_articles").update(patch).eq("id", id);
+  if (error) throw new Error(`updateArticle: ${error.message}`);
+}
+
+export async function unpublishArticle(id: string): Promise<void> {
+  const { error } = await supabaseAdmin().from("kb_articles").update({ status: "draft" }).eq("id", id);
+  if (error) throw new Error(`unpublishArticle: ${error.message}`);
+}
+
+export async function deleteArticle(id: string): Promise<void> {
+  const { error } = await supabaseAdmin().from("kb_articles").delete().eq("id", id);
+  if (error) throw new Error(`deleteArticle: ${error.message}`);
 }
