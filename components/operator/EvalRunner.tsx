@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Minus, FlaskConical } from "lucide-react";
+import { Check, Minus, FlaskConical, ShieldCheck, CheckCircle2, Gauge } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "@/components/ui/toaster";
+import { cn } from "@/lib/utils";
 
 interface ResultRow {
   question: string;
@@ -49,6 +51,14 @@ export default function EvalRunner({ initial }: { initial: EvalSummary | null })
   const groundedRate = run && run.total ? Math.round((run.grounded / run.total) * 100) : 0;
   const passRate = run && run.total ? Math.round((run.passed / run.total) * 100) : 0;
 
+  const cards: { label: string; value: string; sub: string; icon: LucideIcon; tone: string; bar?: number }[] = run
+    ? [
+        { label: "Grounded-rate", value: `${groundedRate}%`, sub: "answers backed by KB", icon: ShieldCheck, tone: "bg-success-soft text-success" },
+        { label: "Pass-rate", value: `${passRate}%`, sub: "correct answer / escalate", icon: CheckCircle2, tone: "bg-accent-soft text-accent-strong", bar: passRate },
+        { label: "Avg similarity", value: run.avg_similarity.toFixed(2), sub: "top retrieved match", icon: Gauge, tone: "bg-warning-soft text-warning" },
+      ]
+    : [];
+
   return (
     <div>
       <div className="flex items-center justify-between gap-4">
@@ -77,17 +87,27 @@ export default function EvalRunner({ initial }: { initial: EvalSummary | null })
       ) : (
         <>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {[
-              { label: "Grounded-rate", value: `${groundedRate}%`, sub: "answers backed by KB" },
-              { label: "Pass-rate", value: `${passRate}%`, sub: "correct answer / escalate" },
-              { label: "Avg similarity", value: run.avg_similarity.toFixed(2), sub: "top retrieved match" },
-            ].map((s) => (
-              <div key={s.label} className="rounded-xl border border-border bg-surface p-5">
-                <div className="text-sm text-muted">{s.label}</div>
-                <div className="mt-2 text-3xl font-semibold tracking-tight">{s.value}</div>
-                <div className="mt-1 text-xs text-muted">{s.sub}</div>
-              </div>
-            ))}
+            {cards.map((c) => {
+              const Icon = c.icon;
+              return (
+                <div key={c.label} className="rounded-xl border border-border bg-surface p-5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted">{c.label}</span>
+                    <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", c.tone)}>
+                      <Icon className="h-4 w-4" />
+                    </span>
+                  </div>
+                  <div className="mt-3 text-3xl font-semibold tracking-tight">{c.value}</div>
+                  {c.bar !== undefined ? (
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+                      <div className="h-full rounded-full bg-accent" style={{ width: `${c.bar}%` }} />
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-xs text-muted">{c.sub}</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {run.createdAt && (
@@ -109,7 +129,7 @@ export default function EvalRunner({ initial }: { initial: EvalSummary | null })
               </thead>
               <tbody className="divide-y divide-border">
                 {run.results.map((r, i) => (
-                  <tr key={i}>
+                  <tr key={i} className={cn(!r.pass && "bg-danger-soft/40")}>
                     <td className="px-4 py-3">{r.question}</td>
                     <td className="px-4 py-3">
                       <Badge tone={r.expected === "answer" ? "success" : "warning"}>{r.expected}</Badge>

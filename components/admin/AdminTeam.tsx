@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toaster";
 
 interface Profile {
@@ -40,16 +41,19 @@ export default function AdminTeam({ profiles, meId }: { profiles: Profile[]; meI
               {p.id === meId && <span className="ml-2 text-xs text-muted">(you)</span>}
             </div>
           </div>
-          <select
-            value={p.role}
-            onChange={(e) => setRole(p.id, e.target.value)}
-            disabled={p.id === meId}
-            className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none focus:border-accent disabled:opacity-50"
-          >
-            <option value="customer">customer</option>
-            <option value="agent">agent</option>
-            <option value="admin">admin</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <Badge tone={p.role === "admin" ? "accent" : p.role === "agent" ? "success" : "neutral"}>{p.role}</Badge>
+            <select
+              value={p.role}
+              onChange={(e) => setRole(p.id, e.target.value)}
+              disabled={p.id === meId}
+              className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none focus:border-accent disabled:opacity-50"
+            >
+              <option value="customer">customer</option>
+              <option value="agent">agent</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
         </div>
       ))}
       {profiles.length === 0 && <div className="px-4 py-6 text-center text-sm text-muted">No users yet.</div>}
