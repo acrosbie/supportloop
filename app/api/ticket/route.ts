@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { createTicketFromChat } from "@/lib/data";
+import { getAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,8 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Missing "message" string' }, { status: 400 });
   }
   try {
-    const ticketId = await createTicketFromChat(message, subject);
+    const auth = await getAuth();
+    const ticketId = await createTicketFromChat(message, subject, auth?.id ?? null, auth?.email ?? null);
     return Response.json({ ok: true, ticketId });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to create ticket";

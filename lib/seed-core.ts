@@ -5,6 +5,7 @@ import { embed, toVector } from "./embeddings";
 import type { Urgency } from "./types";
 import kbArticles from "../supabase/seed/kb-articles.json";
 import communityData from "../supabase/seed/community.json";
+import { DEMO_ACCOUNTS } from "./demo-accounts";
 
 // Shapes of the seed JSON files.
 interface KbSeed {
@@ -140,6 +141,8 @@ interface GenTicket {
   was_ai_assisted: boolean;
   csat: number | null;
   is_hero: boolean;
+  requester_id: string | null;
+  requester_email: string | null;
   created_at: string;
   resolved_at: string | null;
 }
@@ -213,6 +216,8 @@ function generateTickets(): { tickets: GenTicket[]; messages: unknown[]; events:
       was_ai_assisted: wasAiAssisted,
       csat,
       is_hero: false,
+      requester_id: null,
+      requester_email: null,
       created_at: created,
       resolved_at: resolvedAt,
     });
@@ -270,11 +275,46 @@ function buildHeroTicket(): { ticket: GenTicket; messages: unknown[] } {
     was_ai_assisted: false,
     csat: null,
     is_hero: true,
+    requester_id: null,
+    requester_email: null,
     created_at: created,
     resolved_at: null,
   };
   const messages = [{ id: randomUUID(), ticket_id: id, role: "customer", body, created_at: created }];
   return { ticket, messages };
+}
+
+/**
+ * Ensure the three one-click demo accounts exist with the right role + password.
+ * Idempotent — safe to run on every seed/reset. Returns role -> user id.
+ */
+async function ensureDemoAccounts(sb: SupabaseClient): Promise<Record<string, string>> {
+  const ids: Record<string, string> = {};
+  const { data: list } = await sb.auth.admin.listUsers({ page: 1, perPage: 200 });
+  for (const acc of DEMO_ACCOUNTS) {
+    const existing = list?.users.find((u) => u.email === acc.email);
+    if (existing) {
+      await sb.auth.admin.updateUserById(existing.id, {
+        password: acc.password,
+        app_metadata: { role: acc.role },
+        user_metadata: { display_name: acc.name },
+      });
+      await sb.from("profiles").upsert({ id: existing.id, role: acc.role, display_name: acc.name });
+      ids[acc.role] = existing.id;
+    } else {
+      const { data, error } = await sb.auth.admin.createUser({
+        email: acc.email,
+        password: acc.password,
+        email_confirm: true,
+        app_metadata: { role: acc.role },
+        user_metadata: { display_name: acc.name },
+      });
+      if (error || !data.user) throw new Error(`create demo ${acc.email}: ${error?.message ?? "unknown"}`);
+      await sb.from("profiles").upsert({ id: data.user.id, role: acc.role, display_name: acc.name });
+      ids[acc.role] = data.user.id;
+    }
+  }
+  return ids;
 }
 
 /**
@@ -299,6 +339,9 @@ export async function seedDatabase(): Promise<Record<string, number>> {
     if (error) throw new Error(`wipe ${table}: ${error.message}`);
   }
 
+  // Demo accounts (idempotent — they persist across resets).
+  const demoIds = await ensureDemoAccounts(sb);
+
   // 2. KB articles + embeddings.
   const kb = kbArticles as KbSeed[];
   const kbEmbeddings = await embed(kb.map((a) => `${a.title}\n\n${a.body}`), "document");
@@ -319,6 +362,8 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   // 3. Tickets + messages + events (generated) + the hero ticket.
   const { tickets, messages, events } = generateTickets();
   const hero = buildHeroTicket();
+  hero.ticket.requester_id = demoIds.customer ?? null;
+  hero.ticket.requester_email = "customer@supportloop.demo";
   tickets.push(hero.ticket);
   for (const m of hero.messages) messages.push(m);
   await insertAll(sb, "tickets", tickets);
@@ -361,5 +406,6 @@ export async function seedDatabase(): Promise<Record<string, number>> {
     events: events.length,
     community_questions: cqRows.length,
     community_answers: answers.length,
+    demo_accounts: Object.keys(demoIds).length,
   };
 }

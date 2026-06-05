@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LifeBuoy, Users } from "lucide-react";
+import { LifeBuoy, Users, Ticket } from "lucide-react";
 import RoleSwitcher from "@/components/RoleSwitcher";
+import LogoutButton from "@/components/auth/LogoutButton";
+import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -12,7 +15,13 @@ const NAV = [
 ];
 
 /** Friendly, refined "Orbit Help Center" chrome — light, the customer face. */
-export default function CustomerShell({ children }: { children: React.ReactNode }) {
+export default function CustomerShell({
+  children,
+  auth,
+}: {
+  children: React.ReactNode;
+  auth: { name: string } | null;
+}) {
   const pathname = usePathname();
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -46,11 +55,34 @@ export default function CustomerShell({ children }: { children: React.ReactNode 
                 </Link>
               );
             })}
+            {auth && (
+              <Link
+                href="/user/tickets"
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors",
+                  pathname.startsWith("/user/tickets")
+                    ? "bg-accent-soft font-medium text-accent-strong"
+                    : "text-foreground/70 hover:bg-surface-2"
+                )}
+              >
+                <Ticket className="h-4 w-4" />
+                My tickets
+              </Link>
+            )}
           </nav>
 
           <div className="flex items-center gap-2">
-            <span className="hidden text-xs text-muted md:inline">Demo view</span>
             <RoleSwitcher />
+            {auth ? (
+              <div className="flex items-center gap-1.5 border-l border-border pl-2">
+                <Avatar name={auth.name} className="h-7 w-7 text-[10px]" />
+                <LogoutButton />
+              </div>
+            ) : (
+              <Button asChild variant="outline" size="sm">
+                <Link href="/login">Sign in</Link>
+              </Button>
+            )}
           </div>
         </div>
       </header>

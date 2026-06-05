@@ -2,19 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Search } from "lucide-react";
+import { Menu, Search, Inbox, BookOpen, LayoutDashboard, FlaskConical, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import RoleSwitcher from "@/components/RoleSwitcher";
 import ResetButton from "@/components/ResetButton";
+import LogoutButton from "@/components/auth/LogoutButton";
 import { Avatar } from "@/components/ui/avatar";
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+
+// Icons are referenced by string key so the (server) layouts can pass nav data
+// across the server→client boundary without serializing components.
+const ICON_MAP: Record<string, LucideIcon> = {
+  inbox: Inbox,
+  knowledge: BookOpen,
+  dashboard: LayoutDashboard,
+  quality: FlaskConical,
+  admin: ShieldCheck,
+};
 
 export interface OperatorNavItem {
   href: string;
   label: string;
   hint: string;
-  icon: LucideIcon;
+  icon: string;
   exact?: boolean;
 }
 
@@ -45,7 +56,7 @@ function NavLinks({
     <nav className="flex-1 space-y-0.5 px-2 py-3">
       {nav.map((item) => {
         const active = pathname === item.href || (!item.exact && pathname.startsWith(item.href + "/"));
-        const Icon = item.icon;
+        const Icon = ICON_MAP[item.icon] ?? Inbox;
         return (
           <Link
             key={item.href}
@@ -80,7 +91,10 @@ function Identity({ operator }: { operator: { name: string; role: string } }) {
           <span className="block text-xs text-muted">{operator.role}</span>
         </span>
       </div>
-      <ResetButton />
+      <div className="flex items-center justify-between gap-2">
+        <ResetButton />
+        <LogoutButton />
+      </div>
     </div>
   );
 }

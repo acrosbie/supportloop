@@ -65,6 +65,17 @@ export async function getTicketMessages(ticketId: string): Promise<TicketMessage
   return (data ?? []) as TicketMessage[];
 }
 
+/** Tickets opened by a given customer (for "My Tickets"). */
+export async function getMyTickets(userId: string): Promise<Ticket[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("tickets")
+    .select("*")
+    .eq("requester_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`getMyTickets: ${error.message}`);
+  return (data ?? []) as Ticket[];
+}
+
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------
@@ -78,7 +89,12 @@ export async function logEvent(
 }
 
 /** Escalation path from the customer chatbot: create an open ticket. */
-export async function createTicketFromChat(message: string, subject?: string): Promise<string> {
+export async function createTicketFromChat(
+  message: string,
+  subject?: string,
+  requesterId?: string | null,
+  requesterEmail?: string | null
+): Promise<string> {
   const id = randomUUID();
   const subj = subject?.trim() || (message.trim().length > 80 ? message.trim().slice(0, 80) + "…" : message.trim());
   const { error } = await supabaseAdmin().from("tickets").insert({
@@ -91,6 +107,8 @@ export async function createTicketFromChat(message: string, subject?: string): P
     queue: "Unassigned",
     was_deflected: false,
     was_ai_assisted: false,
+    requester_id: requesterId ?? null,
+    requester_email: requesterEmail ?? null,
   });
   if (error) throw new Error(`createTicketFromChat: ${error.message}`);
   await supabaseAdmin().from("ticket_messages").insert({ ticket_id: id, role: "customer", body: message });
