@@ -6,6 +6,9 @@ import TriagePanel from "@/components/agent/TriagePanel";
 import TicketProperties from "@/components/agent/TicketProperties";
 import ReplyComposer from "@/components/agent/ReplyComposer";
 import { Badge, PriorityPill, StatusPill } from "@/components/ui/badge";
+import { Avatar } from "@/components/ui/avatar";
+import { ChannelIcon, channelLabel } from "@/components/ui/channel-icon";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +22,7 @@ export default async function TicketDetail({ params }: { params: { id: string } 
     getAuth(),
   ]);
   const resolved = ticket.status === "resolved" || ticket.status === "deflected";
+  const requester = ticket.requester_email || "anonymous";
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-6">
@@ -30,9 +34,10 @@ export default async function TicketDetail({ params }: { params: { id: string } 
         <div className="min-w-0">
           <h1 className="text-xl font-semibold">{ticket.subject}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-            <span>{ticket.requester_email || "anonymous"}</span>
-            <span>·</span>
-            <span>{ticket.channel}</span>
+            <span className="flex items-center gap-1">
+              <ChannelIcon channel={ticket.channel} className="h-3 w-3" />
+              {channelLabel(ticket.channel)}
+            </span>
             <span>·</span>
             <span>opened {new Date(ticket.created_at).toLocaleString()}</span>
           </div>
@@ -48,27 +53,29 @@ export default async function TicketDetail({ params }: { params: { id: string } 
         <div className="space-y-4 lg:col-span-2">
           <div className="rounded-xl border border-border bg-surface p-4">
             <div className="text-xs font-medium uppercase tracking-wide text-muted">Conversation</div>
-            <div className="mt-3 space-y-3">
-              {messages.map((m) => (
-                <div key={m.id} className={m.role === "customer" ? "" : "flex justify-end"}>
+            <div className="mt-3 space-y-1">
+              {messages.map((m) => {
+                const isCustomer = m.role === "customer";
+                const author = isCustomer ? requester : m.role === "ai" ? "Orbit Assistant" : me?.name || "Agent";
+                return (
                   <div
-                    className={
-                      m.internal
-                        ? "max-w-[90%] rounded-2xl border border-warning/40 bg-warning-soft p-3 text-sm"
-                        : m.role === "customer"
-                          ? "max-w-[90%] rounded-2xl rounded-tl-sm bg-surface-2 p-3 text-sm"
-                          : "max-w-[90%] rounded-2xl rounded-tr-sm bg-accent-soft p-3 text-sm"
-                    }
+                    key={m.id}
+                    className={cn("flex gap-3 rounded-xl p-3", m.internal && "border border-warning/40 bg-warning-soft")}
                   >
-                    <div className="mb-1 flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted">
-                      {m.role}
-                      {m.internal && <Badge tone="warning">Internal</Badge>}
+                    <Avatar name={author} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                        <span className="font-medium text-foreground">{author}</span>
+                        <span className="capitalize text-muted">· {m.role}</span>
+                        {m.internal && <Badge tone="warning">Internal note</Badge>}
+                        <span className="text-muted">· {new Date(m.created_at).toLocaleString()}</span>
+                      </div>
+                      <div className="mt-1 whitespace-pre-wrap text-sm text-foreground/90">{m.body}</div>
                     </div>
-                    <div className="whitespace-pre-wrap">{m.body}</div>
                   </div>
-                </div>
-              ))}
-              {messages.length === 0 && <div className="text-sm text-muted">No messages yet.</div>}
+                );
+              })}
+              {messages.length === 0 && <div className="p-3 text-sm text-muted">No messages yet.</div>}
             </div>
           </div>
 
@@ -81,6 +88,42 @@ export default async function TicketDetail({ params }: { params: { id: string } 
 
         {/* Right rail */}
         <div className="space-y-4">
+          {/* Requester */}
+          <div className="rounded-xl border border-border bg-surface p-4">
+            <div className="flex items-center gap-3">
+              <Avatar name={requester} className="h-10 w-10 text-sm" />
+              <div className="min-w-0">
+                <div className="truncate text-sm font-medium">{requester}</div>
+                <div className="text-xs text-muted">Requester</div>
+              </div>
+            </div>
+            <div className="mt-3 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Channel</span>
+                <span className="flex items-center gap-1">
+                  <ChannelIcon channel={ticket.channel} className="h-3 w-3" />
+                  {channelLabel(ticket.channel)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Opened</span>
+                <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+              </div>
+              {ticket.first_response_at && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">First reply</span>
+                  <span>{new Date(ticket.first_response_at).toLocaleDateString()}</span>
+                </div>
+              )}
+              {ticket.sla_due_at && !resolved && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">SLA due</span>
+                  <span>{new Date(ticket.sla_due_at).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           <TriagePanel ticketId={ticket.id} />
           <TicketProperties
             ticketId={ticket.id}

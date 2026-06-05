@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { MessageCircle, Sparkles, X } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
 
 interface Source {
@@ -113,34 +114,38 @@ export default function ChatWidget() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-fg shadow-lg transition-transform hover:scale-105"
+          aria-label="Open Orbit Assistant"
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-fg shadow-lg transition-transform hover:scale-105"
         >
-          💬 Ask Orbit Assistant
+          <MessageCircle className="h-6 w-6" />
         </button>
       )}
 
       {/* Panel */}
       {open && (
         <div className="fixed bottom-6 right-6 z-40 flex h-[min(70vh,32rem)] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-2xl">
-          <div className="flex items-center justify-between border-b border-border bg-accent px-4 py-3 text-accent-fg">
-            <div className="flex items-center gap-2">
-              <span>💬</span>
+          <div className="flex items-center justify-between bg-gradient-to-br from-accent-strong to-accent px-4 py-4 text-accent-fg">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
+                <Sparkles className="h-5 w-5" />
+              </span>
               <div className="leading-tight">
                 <div className="text-sm font-semibold">Orbit Assistant</div>
-                <div className="text-[11px] opacity-80">Answers from the help center</div>
+                <div className="text-[11px] opacity-90">Replies instantly · from the help center</div>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="rounded p-1 text-lg leading-none hover:bg-white/20" aria-label="Close">
-              ×
+            <button onClick={() => setOpen(false)} className="rounded p-1 hover:bg-white/20" aria-label="Close">
+              <X className="h-4 w-4" />
             </button>
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto p-3">
             {messages.length === 0 && (
               <div className="space-y-3">
-                <p className="text-sm text-muted">
-                  Ask a question about Orbit. I only answer from the help center — and if I can't, I'll offer to open a ticket.
-                </p>
+                <div className="max-w-[92%] rounded-2xl rounded-bl-sm bg-surface-2 px-3 py-2 text-sm">
+                  👋 Hi! I&apos;m the Orbit Assistant. Ask me anything — I answer from the help center, and if I can&apos;t, I&apos;ll open a support ticket for you.
+                </div>
+                <div className="text-xs font-medium text-muted">Try one of these</div>
                 <div className="space-y-1.5">
                   {EXAMPLES.map((ex) => (
                     <button

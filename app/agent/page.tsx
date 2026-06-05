@@ -6,16 +6,11 @@ import type { Ticket } from "@/lib/types";
 import QueueControls from "@/components/agent/QueueControls";
 import { Badge, PriorityPill, StatusPill } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { ChannelIcon } from "@/components/ui/channel-icon";
 import { EmptyState } from "@/components/ui/empty-state";
+import { timeAgo } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-
-function ago(iso: string): string {
-  const s = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86400)}d`;
-}
 
 function SlaCell({ t }: { t: Ticket }) {
   if (t.status === "resolved" || t.status === "deflected" || !t.sla_due_at)
@@ -62,26 +57,30 @@ export default async function AgentInbox({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-6 py-2 font-medium">Subject</th>
+                <th className="w-0" />
+                <th className="px-3 py-2 font-medium">Subject</th>
                 <th className="px-3 py-2 font-medium">Priority</th>
                 <th className="px-3 py-2 font-medium">Assignee</th>
                 <th className="px-3 py-2 font-medium">SLA</th>
                 <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Age</th>
+                <th className="px-3 py-2 pr-6 font-medium">Age</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {tickets.map((t) => (
-                <tr key={t.id} className="hover:bg-surface-2">
-                  <td className="px-6 py-3">
+                <tr key={t.id} className="align-top hover:bg-surface-2">
+                  <td className="w-0 py-3 pl-6 pr-2">
+                    <Avatar name={t.requester_email || "anonymous"} />
+                  </td>
+                  <td className="max-w-md py-3 pr-3">
                     <Link href={`/agent/ticket/${t.id}`} className="block">
                       <span className="flex items-center gap-2">
                         <span className="font-medium">{t.subject}</span>
-                        {t.is_hero && (
-                          <span className="rounded bg-accent-soft px-1 text-[10px] font-medium text-accent-strong">demo</span>
-                        )}
+                        {t.is_hero && <Badge tone="accent">demo</Badge>}
                       </span>
-                      <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                      <span className="mt-0.5 line-clamp-1 text-xs text-muted">{t.body}</span>
+                      <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
+                        <ChannelIcon channel={t.channel} className="h-3 w-3" />
                         <span>{t.requester_email || "anonymous"}</span>
                         <span>·</span>
                         <span>{t.intent || "untriaged"}</span>
@@ -112,7 +111,7 @@ export default async function AgentInbox({
                   <td className="px-3 py-3">
                     <StatusPill status={t.status} />
                   </td>
-                  <td className="px-3 py-3 text-xs text-muted">{ago(t.created_at)}</td>
+                  <td className="px-3 py-3 pr-6 text-xs text-muted">{timeAgo(t.created_at)}</td>
                 </tr>
               ))}
             </tbody>

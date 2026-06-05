@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import { getArticle } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +13,14 @@ export default async function ArticlePage({ params }: { params: { id: string } }
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
-      <Link href="/user" className="text-sm text-accent-strong hover:underline">
-        ← Help Center
-      </Link>
-      <div className="mt-4 text-xs uppercase tracking-wide text-muted">{article.category}</div>
-      <h1 className="mt-1 text-3xl font-semibold tracking-tight">{article.title}</h1>
+      <div className="flex items-center gap-1.5 text-sm text-muted">
+        <Link href="/user" className="hover:text-foreground">
+          Help Center
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground/70">{article.category}</span>
+      </div>
+      <h1 className="mt-3 text-3xl font-semibold tracking-tight">{article.title}</h1>
 
       <article className="mt-6 space-y-4 text-[15px] leading-relaxed text-foreground/90">
         {paragraphs.map((p, i) => (
