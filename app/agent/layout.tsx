@@ -1,3 +1,5 @@
+"use client";
+
 import OperatorShell, { type OperatorNavItem } from "@/components/operator/OperatorShell";
 import { Inbox, BookOpen } from "lucide-react";
 
