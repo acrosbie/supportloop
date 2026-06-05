@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { ShieldCheck, Bot, Star, Inbox, BookOpen } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import VolumeChart from "./VolumeChart";
+import { cn } from "@/lib/utils";
 
 interface MetricSet {
   total: number;
@@ -23,30 +26,30 @@ export default function DashboardView({ all, today, volume, topIntents, kbFromTi
   const [scope, setScope] = useState<"all" | "today">("all");
   const m = scope === "all" ? all : today;
 
-  const cards = [
-    { label: "Deflection rate", value: pct(m.deflectionRate), sub: "resolved without an agent" },
-    { label: "Automation rate", value: pct(m.automationRate), sub: "AI-assisted resolutions" },
-    { label: "Avg CSAT", value: m.avgCsat != null ? m.avgCsat.toFixed(1) : "—", sub: "of 5" },
-    { label: scope === "all" ? "Tickets (all time)" : "Tickets today", value: String(m.total), sub: "across all channels" },
+  const cards: { label: string; value: string; sub: string; icon: LucideIcon; tone: string }[] = [
+    { label: "Deflection rate", value: pct(m.deflectionRate), sub: "resolved without an agent", icon: ShieldCheck, tone: "bg-success-soft text-success" },
+    { label: "Automation rate", value: pct(m.automationRate), sub: "AI-assisted resolutions", icon: Bot, tone: "bg-accent-soft text-accent-strong" },
+    { label: "Avg CSAT", value: m.avgCsat != null ? m.avgCsat.toFixed(1) : "—", sub: "of 5", icon: Star, tone: "bg-warning-soft text-warning" },
+    { label: scope === "all" ? "Tickets (all time)" : "Tickets today", value: String(m.total), sub: "across all channels", icon: Inbox, tone: "bg-surface-2 text-muted" },
   ];
 
   return (
     <div>
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Ops Dashboard</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Ops Dashboard</h1>
           <p className="mt-1 text-muted">Live from your tickets and events — does the AI move a metric?</p>
         </div>
         <div className="inline-flex rounded-lg border border-border bg-surface p-0.5 text-xs">
           <button
             onClick={() => setScope("all")}
-            className={`rounded-md px-2.5 py-1 ${scope === "all" ? "bg-accent font-medium text-accent-fg" : "text-muted"}`}
+            className={cn("rounded-md px-2.5 py-1", scope === "all" ? "bg-accent font-medium text-accent-fg" : "text-muted")}
           >
             All time
           </button>
           <button
             onClick={() => setScope("today")}
-            className={`rounded-md px-2.5 py-1 ${scope === "today" ? "bg-accent font-medium text-accent-fg" : "text-muted"}`}
+            className={cn("rounded-md px-2.5 py-1", scope === "today" ? "bg-accent font-medium text-accent-fg" : "text-muted")}
           >
             Today
           </button>
@@ -54,13 +57,21 @@ export default function DashboardView({ all, today, volume, topIntents, kbFromTi
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((c) => (
-          <div key={c.label} className="rounded-xl border border-border bg-surface p-5">
-            <div className="text-sm text-muted">{c.label}</div>
-            <div className="mt-2 text-3xl font-semibold tracking-tight">{c.value}</div>
-            <div className="mt-1 text-xs text-muted">{c.sub}</div>
-          </div>
-        ))}
+        {cards.map((c) => {
+          const Icon = c.icon;
+          return (
+            <div key={c.label} className="rounded-xl border border-border bg-surface p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted">{c.label}</span>
+                <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", c.tone)}>
+                  <Icon className="h-4 w-4" />
+                </span>
+              </div>
+              <div className="mt-3 text-3xl font-semibold tracking-tight">{c.value}</div>
+              <div className="mt-1 text-xs text-muted">{c.sub}</div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -81,7 +92,9 @@ export default function DashboardView({ all, today, volume, topIntents, kbFromTi
               <li key={it.name}>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-foreground/80">{it.name}</span>
-                  <span className="text-muted">{it.pct}%</span>
+                  <span className="text-muted">
+                    {it.count} · {it.pct}%
+                  </span>
                 </div>
                 <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
                   <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, it.pct * 3)}%` }} />
@@ -93,14 +106,17 @@ export default function DashboardView({ all, today, volume, topIntents, kbFromTi
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-border bg-surface p-5">
-        <div className="flex items-center justify-between">
+      <div className="mt-6 flex items-center justify-between rounded-xl border border-border bg-surface p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent-strong">
+            <BookOpen className="h-5 w-5" />
+          </span>
           <div>
             <div className="text-sm font-medium">KB articles published from tickets</div>
-            <div className="mt-1 text-xs text-muted">the knowledge loop, quantified — grows as you publish</div>
+            <div className="mt-0.5 text-xs text-muted">the knowledge loop, quantified — grows as you publish</div>
           </div>
-          <div className="text-3xl font-semibold">{kbFromTickets}</div>
         </div>
+        <div className="text-3xl font-semibold">{kbFromTickets}</div>
       </div>
     </div>
   );

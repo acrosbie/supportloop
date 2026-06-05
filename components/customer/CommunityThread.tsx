@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronUp, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar } from "@/components/ui/avatar";
 import { Markdown } from "@/components/ui/markdown";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
@@ -115,30 +116,36 @@ export default function CommunityThread({ questionId, answers }: { questionId: s
         {answers.map((a) => (
           <li
             key={a.id}
-            className={cn("rounded-xl border p-4", a.accepted ? "border-success/30 bg-success-soft" : "border-border bg-surface")}
+            className={cn("rounded-xl border p-4", a.accepted ? "border-success/30 bg-success-soft" : "border-border bg-white")}
           >
-            <div className="flex items-center gap-2 text-xs">
-              <Badge tone={a.source === "ai" ? "accent" : "neutral"}>
-                {a.source === "ai" ? "AI suggestion" : "Community"}
-              </Badge>
-              {a.accepted && (
-                <Badge tone="success">
-                  <Check className="h-3 w-3" /> Accepted
-                </Badge>
-              )}
-            </div>
-            <div className="mt-2">
-              <Markdown>{a.body}</Markdown>
-            </div>
-            <div className="mt-3 flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => act(a.id, "upvote")} disabled={working !== null}>
-                <ChevronUp className="h-3.5 w-3.5" /> {a.upvotes}
-              </Button>
-              {!a.accepted && (
-                <Button variant="ghost" size="sm" onClick={() => act(a.id, "accept")} disabled={working !== null}>
-                  Accept
-                </Button>
-              )}
+            <div className="flex items-start gap-3">
+              <Avatar name={a.source === "ai" ? "Orbit Assistant" : `Community member ${a.id.slice(0, 4)}`} />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="font-medium text-foreground">
+                    {a.source === "ai" ? "Orbit Assistant" : "Community member"}
+                  </span>
+                  <Badge tone={a.source === "ai" ? "accent" : "neutral"}>{a.source === "ai" ? "AI" : "Member"}</Badge>
+                  {a.accepted && (
+                    <Badge tone="success">
+                      <Check className="h-3 w-3" /> Accepted
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-2">
+                  <Markdown>{a.body}</Markdown>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => act(a.id, "upvote")} disabled={working !== null}>
+                    <ChevronUp className="h-3.5 w-3.5" /> {a.upvotes}
+                  </Button>
+                  {!a.accepted && (
+                    <Button variant="ghost" size="sm" onClick={() => act(a.id, "accept")} disabled={working !== null}>
+                      Accept
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </li>
         ))}

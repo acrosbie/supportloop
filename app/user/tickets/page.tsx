@@ -4,6 +4,7 @@ import { getAuth } from "@/lib/auth";
 import { getMyTickets } from "@/lib/data";
 import { StatusPill } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ChannelIcon, channelLabel } from "@/components/ui/channel-icon";
 
 export const dynamic = "force-dynamic";
 
@@ -27,16 +28,17 @@ export default async function MyTickets() {
       ) : (
         <ul className="mt-6 space-y-2">
           {tickets.map((t) => (
-            <li key={t.id} className="rounded-xl border border-border bg-surface p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{t.subject}</div>
-                  <div className="mt-1 text-xs text-muted">
-                    Opened {new Date(t.created_at).toLocaleDateString()} · {t.channel}
-                  </div>
+            <li key={t.id} className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-strong">
+                <ChannelIcon channel={t.channel} className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{t.subject}</div>
+                <div className="mt-1 text-xs text-muted">
+                  Opened {new Date(t.created_at).toLocaleDateString()} · {channelLabel(t.channel)}
                 </div>
-                <StatusPill status={t.status} />
               </div>
+              <StatusPill status={t.status} />
             </li>
           ))}
         </ul>
