@@ -2,21 +2,92 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Menu, Search } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import RoleSwitcher from "@/components/RoleSwitcher";
 import ResetButton from "@/components/ResetButton";
+import { Avatar } from "@/components/ui/avatar";
+import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 export interface OperatorNavItem {
   href: string;
   label: string;
   hint: string;
+  icon: LucideIcon;
   exact?: boolean;
 }
 
+function Brand({ tagline }: { tagline: string }) {
+  return (
+    <Link href="/" className="flex items-center gap-2">
+      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-base font-bold text-accent-fg">
+        ∞
+      </span>
+      <span className="leading-tight">
+        <span className="block text-sm font-semibold text-foreground">SupportLoop</span>
+        <span className="block text-xs text-muted">{tagline}</span>
+      </span>
+    </Link>
+  );
+}
+
+function NavLinks({
+  nav,
+  pathname,
+  onNavigate,
+}: {
+  nav: OperatorNavItem[];
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <nav className="flex-1 space-y-0.5 px-2 py-3">
+      {nav.map((item) => {
+        const active = pathname === item.href || (!item.exact && pathname.startsWith(item.href + "/"));
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={cn(
+              "group flex items-center gap-3 rounded-lg border-l-2 px-3 py-2 transition-colors",
+              active
+                ? "border-accent bg-accent-soft text-foreground"
+                : "border-transparent text-muted hover:bg-surface-2 hover:text-foreground"
+            )}
+          >
+            <Icon className={cn("h-4 w-4 shrink-0", active ? "text-accent-strong" : "text-muted group-hover:text-foreground")} />
+            <span className="flex-1">
+              <span className="block text-sm font-medium leading-tight">{item.label}</span>
+              <span className="block text-xs text-muted">{item.hint}</span>
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function Identity({ operator }: { operator: { name: string; role: string } }) {
+  return (
+    <div className="border-t border-border p-3">
+      <div className="mb-3 flex items-center gap-2.5">
+        <Avatar name={operator.name} />
+        <span className="leading-tight">
+          <span className="block text-sm font-medium text-foreground">{operator.name}</span>
+          <span className="block text-xs text-muted">{operator.role}</span>
+        </span>
+      </div>
+      <ResetButton />
+    </div>
+  );
+}
+
 /**
- * The dense "operator workspace" chrome shared by the Agent and Ops spaces —
- * left rail + a top bar with search, the role switcher, and reset. This is the
- * SupportLoop side (the tool the support team uses), distinct from the friendly
- * Orbit help center customers see.
+ * Dense, Linear-style operator workspace chrome (Agent + Ops). Renders dark via
+ * data-theme — the striking contrast with the light customer/Orbit surfaces.
  */
 export default function OperatorShell({
   tagline,
@@ -30,81 +101,61 @@ export default function OperatorShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const initials = operator.name
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface-2">
-      {/* Left rail */}
+    <div data-theme="dark" className="flex h-screen overflow-hidden bg-background text-foreground">
+      {/* Desktop rail */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
-        <div className="border-b border-border px-4 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-lg font-bold text-accent-fg">
-              ∞
-            </span>
-            <span className="leading-tight">
-              <span className="block text-sm font-semibold">SupportLoop</span>
-              <span className="block text-xs text-muted">{tagline}</span>
-            </span>
-          </Link>
+        <div className="px-4 py-4">
+          <Brand tagline={tagline} />
         </div>
-
-        <nav className="flex-1 space-y-1 px-2 py-3">
-          {nav.map((item) => {
-            const active =
-              pathname === item.href ||
-              (!item.exact && pathname.startsWith(item.href + "/"));
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg border-l-2 px-3 py-2 text-sm transition-colors ${
-                  active
-                    ? "border-accent bg-accent-soft font-medium text-accent-strong"
-                    : "border-transparent text-foreground/80 hover:bg-surface-2"
-                }`}
-              >
-                <span className="flex-1">
-                  <span className="block">{item.label}</span>
-                  <span className="block text-xs text-muted">{item.hint}</span>
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="border-t border-border px-4 py-3">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent-strong">
-              {initials}
-            </span>
-            <span className="leading-tight">
-              <span className="block text-sm font-medium">{operator.name}</span>
-              <span className="block text-xs text-muted">{operator.role}</span>
-            </span>
-          </div>
-          <ResetButton />
-        </div>
+        <NavLinks nav={nav} pathname={pathname} />
+        <Identity operator={operator} />
       </aside>
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-border bg-surface px-4 py-2.5 md:px-6">
-          <div className="flex min-w-0 flex-1 items-center">
-            <div className="flex w-full max-w-sm items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-sm text-muted">
-              <span className="text-muted">⌕</span>
-              <span className="truncate">Search tickets, articles…</span>
+        <header className="flex items-center justify-between gap-3 border-b border-border bg-surface px-3 py-2.5 md:px-5">
+          <div className="flex items-center gap-2">
+            {/* Mobile nav */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <button
+                  aria-label="Open navigation"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-foreground md:hidden"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" title="Navigation">
+                <div data-theme="dark" className="flex h-full flex-col bg-surface">
+                  <div className="px-4 py-4">
+                    <Brand tagline={tagline} />
+                  </div>
+                  <SheetClose asChild>
+                    <div className="contents">
+                      <NavLinks nav={nav} pathname={pathname} />
+                    </div>
+                  </SheetClose>
+                  <Identity operator={operator} />
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            <div className="hidden w-72 items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-sm text-muted sm:flex">
+              <Search className="h-4 w-4" />
+              <span className="flex-1 truncate">Search…</span>
+              <kbd className="rounded border border-border bg-surface px-1.5 font-mono text-[10px] text-muted">⌘K</kbd>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-2">
             <span className="hidden text-xs text-muted lg:inline">Viewing as</span>
             <RoleSwitcher />
           </div>
         </header>
-        <main className="min-w-0 flex-1 overflow-auto">{children}</main>
+
+        <main className="min-w-0 flex-1 overflow-auto bg-background">{children}</main>
       </div>
     </div>
   );

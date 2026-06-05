@@ -2,23 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LifeBuoy, Users } from "lucide-react";
 import RoleSwitcher from "@/components/RoleSwitcher";
+import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/user", label: "Help Center", exact: true },
-  { href: "/user/community", label: "Community" },
+  { href: "/user", label: "Help Center", icon: LifeBuoy, exact: true },
+  { href: "/user/community", label: "Community", icon: Users },
 ];
 
-/**
- * The friendly "Orbit Help Center" chrome customers see — light, rounded, a
- * horizontal top nav and a search-forward feel. Deliberately different from the
- * dense SupportLoop operator workspace.
- */
+/** Friendly, refined "Orbit Help Center" chrome — light, the customer face. */
 export default function CustomerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      <header className="border-b border-border bg-white">
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
           <Link href="/user" className="flex items-center gap-2">
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-fg">
@@ -32,18 +30,18 @@ export default function CustomerShell({ children }: { children: React.ReactNode 
 
           <nav className="hidden items-center gap-1 sm:flex">
             {NAV.map((item) => {
-              const active =
-                item.exact ? pathname === item.href : pathname.startsWith(item.href);
+              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                    active
-                      ? "bg-accent-soft font-medium text-accent-strong"
-                      : "text-foreground/70 hover:bg-surface-2"
-                  }`}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors",
+                    active ? "bg-accent-soft font-medium text-accent-strong" : "text-foreground/70 hover:bg-surface-2"
+                  )}
                 >
+                  <Icon className="h-4 w-4" />
                   {item.label}
                 </Link>
               );

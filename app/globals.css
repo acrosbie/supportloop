@@ -2,23 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Bespoke token system. Colors are stored as raw "R G B" channels so Tailwind
+  opacity modifiers (text-foreground/70) work. Customer + marketing surfaces use
+  :root (light). Operator surfaces opt into [data-theme="dark"] (Linear-style).
+*/
 :root {
-  --background: #f8fafc; /* slate-50 */
-  --surface: #ffffff;
-  --surface-2: #f1f5f9; /* slate-100 */
-  --foreground: #0f172a; /* slate-900 */
-  --muted: #64748b; /* slate-500 */
-  --border: #e2e8f0; /* slate-200 */
-  --accent: #6366f1; /* indigo-500 */
-  --accent-strong: #4f46e5; /* indigo-600 */
-  --accent-soft: #eef2ff; /* indigo-50 */
-  --accent-fg: #ffffff;
+  --background: 250 250 251;
+  --surface: 255 255 255;
+  --surface-2: 243 244 246;
+  --elevated: 255 255 255;
+  --foreground: 16 17 20;
+  --muted: 96 100 108;
+  --border: 232 233 236;
+  --border-strong: 215 217 221;
+  --accent: 94 106 210;
+  --accent-strong: 77 87 192;
+  --accent-soft: 237 238 252;
+  --accent-fg: 255 255 255;
+  --success: 47 158 110;
+  --success-soft: 231 246 239;
+  --warning: 176 116 28;
+  --warning-soft: 251 243 226;
+  --danger: 209 73 91;
+  --danger-soft: 251 233 236;
+
+  --chart-line: #5e6ad2;
+  --chart-grid: #e8e9ec;
+  --chart-axis: #60646c;
+
+  --shadow-sm: 0 1px 2px 0 rgb(16 17 20 / 0.04);
+  --shadow-md: 0 4px 16px -4px rgb(16 17 20 / 0.08);
+  --shadow-lg: 0 12px 32px -8px rgb(16 17 20 / 0.12);
+}
+
+[data-theme="dark"] {
+  --background: 12 13 16;
+  --surface: 20 21 25;
+  --surface-2: 27 29 34;
+  --elevated: 30 32 37;
+  --foreground: 230 232 236;
+  --muted: 138 143 152;
+  --border: 35 38 45;
+  --border-strong: 47 51 59;
+  --accent: 124 132 232;
+  --accent-strong: 154 160 240;
+  --accent-soft: 28 31 58;
+  --accent-fg: 255 255 255;
+  --success: 78 201 154;
+  --success-soft: 17 40 31;
+  --warning: 224 169 74;
+  --warning-soft: 42 33 19;
+  --danger: 240 109 126;
+  --danger-soft: 44 20 24;
+
+  --chart-line: #7c84e8;
+  --chart-grid: #23262d;
+  --chart-axis: #8a8f98;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 16px 40px -8px rgb(0 0 0 / 0.6);
+}
+
+* {
+  border-color: rgb(var(--border));
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, Arial, sans-serif;
+  color: rgb(var(--foreground));
+  background: rgb(var(--background));
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgb(var(--accent) / 0.22);
 }
 
 @layer utilities {
@@ -27,8 +87,101 @@ body {
   }
 }
 
-/* Thin, unobtrusive scrollbars for the SaaS look */
+/* Thin, theme-aware scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: rgb(var(--border-strong)) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--border-strong));
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* Markdown rendered from AI output */
+.prose-chat {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.prose-chat > :first-child {
+  margin-top: 0;
+}
+.prose-chat > :last-child {
+  margin-bottom: 0;
+}
+.prose-chat p {
+  margin: 0.5rem 0;
+}
+.prose-chat h1,
+.prose-chat h2,
+.prose-chat h3 {
+  font-weight: 600;
+  margin: 0.75rem 0 0.35rem;
+  line-height: 1.3;
+}
+.prose-chat h1 { font-size: 1.05rem; }
+.prose-chat h2 { font-size: 1rem; }
+.prose-chat h3 { font-size: 0.925rem; }
+.prose-chat ul,
+.prose-chat ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+.prose-chat li { margin: 0.2rem 0; }
+.prose-chat ul { list-style: disc; }
+.prose-chat ol { list-style: decimal; }
+.prose-chat a {
+  color: rgb(var(--accent-strong));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-chat code {
+  background: rgb(var(--surface-2));
+  border: 1px solid rgb(var(--border));
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.85em;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+.prose-chat pre {
+  background: rgb(var(--surface-2));
+  border: 1px solid rgb(var(--border));
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+.prose-chat pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.prose-chat strong { font-weight: 600; }
+.prose-chat hr { border-color: rgb(var(--border)); margin: 0.75rem 0; }
+
+/* Radix-driven micro-animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes content-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes sheet-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes sheet-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }

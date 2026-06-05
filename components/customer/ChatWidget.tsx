@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { Markdown } from "@/components/ui/markdown";
 
 interface Source {
   id: string;
@@ -163,9 +164,15 @@ export default function ChatWidget() {
                       : "max-w-[92%] rounded-2xl rounded-bl-sm bg-surface-2 px-3 py-2 text-sm"
                   }
                 >
-                  <div className="whitespace-pre-wrap">
-                    {m.content || (m.role === "assistant" && busy && i === messages.length - 1 ? "…" : "")}
-                  </div>
+                  {m.role === "assistant" ? (
+                    m.content ? (
+                      <Markdown>{m.content}</Markdown>
+                    ) : (
+                      <span className="text-muted">{busy && i === messages.length - 1 ? "…" : ""}</span>
+                    )
+                  ) : (
+                    <div className="whitespace-pre-wrap">{m.content}</div>
+                  )}
 
                   {/* Assistant meta: citations / confidence / escalate */}
                   {m.role === "assistant" && m.content && (

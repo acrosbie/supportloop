@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/toaster";
 
 interface Source {
   id: string;
@@ -87,7 +92,7 @@ export default function AssistPanel({ ticketId, status }: { ticketId: string; st
         setDraft(acc);
       }
     } catch (e) {
-      setDraft((d) => d || (e instanceof Error ? e.message : "Draft failed"));
+      toast.error(e instanceof Error ? e.message : "Draft failed");
     } finally {
       setDrafting(false);
     }
@@ -103,6 +108,7 @@ export default function AssistPanel({ ticketId, status }: { ticketId: string; st
       });
       const j = await res.json();
       if (!res.ok || !j.ok) throw new Error(j.error || "Action failed");
+      toast.success(action === "send" ? "Reply sent" : "Ticket resolved");
       if (action === "resolve" || action === "send_resolve") {
         router.push("/agent");
         router.refresh();
@@ -110,7 +116,7 @@ export default function AssistPanel({ ticketId, status }: { ticketId: string; st
         router.refresh();
       }
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Action failed");
+      toast.error(e instanceof Error ? e.message : "Action failed");
     } finally {
       setWorking(null);
     }
@@ -119,12 +125,11 @@ export default function AssistPanel({ ticketId, status }: { ticketId: string; st
   return (
     <div className="rounded-xl border border-border bg-surface p-5">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold">AI Assist</div>
-        {resolved && (
-          <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs text-green-700">
-            Resolved
-          </span>
-        )}
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Sparkles className="h-4 w-4 text-accent-strong" />
+          AI Assist
+        </div>
+        {resolved && <Badge tone="success">Resolved</Badge>}
       </div>
 
       {/* Triage */}
@@ -132,25 +137,23 @@ export default function AssistPanel({ ticketId, status }: { ticketId: string; st
         {(["intent", "urgency", "queue", "sentiment"] as const).map((k) => (
           <div key={k} className="rounded-lg border border-border bg-surface-2 p-3">
             <div className="text-xs capitalize text-muted">{k}</div>
-            <div className="text-sm font-medium">
-              {triaging ? <span className="text-muted">…</span> : triage ? triage[k] : triageErr ? "—" : "—"}
-            </div>
+            {triaging ? (
+              <Skeleton className="mt-1 h-4 w-16" />
+            ) : (
+              <div className="text-sm font-medium capitalize">{triage ? triage[k] : "—"}</div>
+            )}
           </div>
         ))}
       </div>
-      {triageErr && <div className="mt-2 text-xs text-red-600">Triage: {triageErr}</div>}
+      {triageErr && <div className="mt-2 text-xs text-danger">Triage: {triageErr}</div>}
 
       {/* Draft */}
       <div className="mt-5">
         <div className="flex items-center justify-between">
           <div className="text-xs text-muted">Suggested reply (grounded in KB)</div>
-          <button
-            onClick={generateDraft}
-            disabled={drafting || resolved}
-            className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-foreground/80 hover:bg-surface-2 disabled:opacity-60"
-          >
+          <Button variant="outline" size="sm" onClick={generateDraft} disabled={drafting || resolved}>
             {drafting ? "Drafting…" : draft ? "Regenerate" : "Generate draft"}
-          </button>
+          </Button>
         </div>
 
         <textarea
@@ -159,7 +162,7 @@ export default function AssistPanel({ ticketId, status }: { ticketId: string; st
           placeholder="Click “Generate draft” to produce a grounded reply you can edit before sending."
           rows={8}
           disabled={resolved}
-          className="mt-2 w-full resize-y rounded-lg border border-border bg-white p-3 text-sm outline-none focus:border-accent disabled:bg-surface-2"
+          className="mt-2 w-full resize-y rounded-lg border border-border bg-surface-2 p-3 text-sm text-foreground outline-none placeholder:text-muted focus:border-accent disabled:opacity-60"
         />
 
         {grounded !== null && (
@@ -167,8 +170,7 @@ export default function AssistPanel({ ticketId, status }: { ticketId: string; st
             {grounded && sources.length > 0 ? (
               <div>
                 <div className="mb-1 text-[11px] text-muted">
-                  Grounded in {sources.length} article{sources.length === 1 ? "" : "s"} · top match{" "}
-                  {confidence?.toFixed(2)}
+                  Grounded in {sources.length} article{sources.length === 1 ? "" : "s"} · top match {confidence?.toFixed(2)}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {sources.map((s) => (
@@ -176,7 +178,7 @@ export default function AssistPanel({ ticketId, status }: { ticketId: string; st
                       key={s.id}
                       href={`/user/article/${s.id}`}
                       target="_blank"
-                      className="rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-accent-strong hover:border-accent"
+                      className="rounded-full border border-border bg-surface-2 px-2 py-0.5 text-[11px] text-accent-strong hover:border-accent"
                     >
                       {s.title}
                     </Link>
@@ -184,7 +186,7 @@ export default function AssistPanel({ ticketId, status }: { ticketId: string; st
                 </div>
               </div>
             ) : (
-              <div className="text-[11px] text-amber-700">
+              <div className="text-[11px] text-warning">
                 No confident KB match (best {confidence?.toFixed(2)}) — draft flags this for manual handling.
               </div>
             )}
@@ -194,27 +196,15 @@ export default function AssistPanel({ ticketId, status }: { ticketId: string; st
 
       {/* Actions */}
       <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          onClick={() => act("send")}
-          disabled={resolved || !draft.trim() || working !== null}
-          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-foreground/80 hover:bg-surface-2 disabled:opacity-60"
-        >
+        <Button variant="outline" size="sm" onClick={() => act("send")} disabled={resolved || !draft.trim() || working !== null}>
           {working === "send" ? "Sending…" : "Send reply"}
-        </button>
-        <button
-          onClick={() => act("send_resolve")}
-          disabled={resolved || !draft.trim() || working !== null}
-          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg hover:bg-accent-strong disabled:opacity-60"
-        >
+        </Button>
+        <Button size="sm" onClick={() => act("send_resolve")} disabled={resolved || !draft.trim() || working !== null}>
           {working === "send_resolve" ? "Working…" : "Send & resolve"}
-        </button>
-        <button
-          onClick={() => act("resolve")}
-          disabled={resolved || working !== null}
-          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-foreground/80 hover:bg-surface-2 disabled:opacity-60"
-        >
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => act("resolve")} disabled={resolved || working !== null}>
           {working === "resolve" ? "Resolving…" : "Resolve only"}
-        </button>
+        </Button>
       </div>
     </div>
   );

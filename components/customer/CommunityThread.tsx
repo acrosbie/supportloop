@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronUp, Check, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Markdown } from "@/components/ui/markdown";
+import { toast } from "@/components/ui/toaster";
+import { cn } from "@/lib/utils";
 
 interface Answer {
   id: string;
@@ -17,13 +23,7 @@ interface Source {
   similarity: number;
 }
 
-export default function CommunityThread({
-  questionId,
-  answers,
-}: {
-  questionId: string;
-  answers: Answer[];
-}) {
+export default function CommunityThread({ questionId, answers }: { questionId: string; answers: Answer[] }) {
   const router = useRouter();
   const [suggesting, setSuggesting] = useState(false);
   const [gapMsg, setGapMsg] = useState<string | null>(null);
@@ -44,14 +44,16 @@ export default function CommunityThread({
       if (!res.ok || !j.ok) throw new Error(j.error || "Suggestion failed");
       if (j.grounded) {
         setSources(j.sources || []);
+        toast.success("AI answer added");
       } else {
         setGapMsg(
           "No confident help-center match — flagged as a knowledge gap and a draft was created in the Knowledge Loop for the team to write."
         );
+        toast("Flagged as a knowledge gap");
       }
       router.refresh();
     } catch (e) {
-      setGapMsg(e instanceof Error ? e.message : "Suggestion failed");
+      toast.error(e instanceof Error ? e.message : "Suggestion failed");
     } finally {
       setSuggesting(false);
     }
@@ -69,7 +71,7 @@ export default function CommunityThread({
       if (!res.ok || !j.ok) throw new Error(j.error || "Action failed");
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Action failed");
+      toast.error(e instanceof Error ? e.message : "Action failed");
     } finally {
       setWorking(null);
     }
@@ -78,20 +80,17 @@ export default function CommunityThread({
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
+        <h2 className="text-xs font-medium uppercase tracking-widest text-muted">
           {answers.length} answer{answers.length === 1 ? "" : "s"}
         </h2>
-        <button
-          onClick={suggest}
-          disabled={suggesting}
-          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg hover:bg-accent-strong disabled:opacity-60"
-        >
+        <Button size="sm" onClick={suggest} disabled={suggesting}>
+          <Sparkles className="h-4 w-4" />
           {suggesting ? "Thinking…" : "Suggest an answer"}
-        </button>
+        </Button>
       </div>
 
       {gapMsg && (
-        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <div className="mt-3 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm text-warning">
           {gapMsg}
         </div>
       )}
@@ -103,7 +102,7 @@ export default function CommunityThread({
               <Link
                 key={s.id}
                 href={`/user/article/${s.id}`}
-                className="rounded-full border border-border bg-white px-2 py-0.5 text-[11px] text-accent-strong hover:border-accent"
+                className="rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-accent-strong hover:border-accent"
               >
                 {s.title}
               </Link>
@@ -114,30 +113,31 @@ export default function CommunityThread({
 
       <ul className="mt-4 space-y-3">
         {answers.map((a) => (
-          <li key={a.id} className={`rounded-xl border p-4 ${a.accepted ? "border-green-200 bg-green-50" : "border-border bg-white"}`}>
+          <li
+            key={a.id}
+            className={cn("rounded-xl border p-4", a.accepted ? "border-success/30 bg-success-soft" : "border-border bg-surface")}
+          >
             <div className="flex items-center gap-2 text-xs">
-              <span className={`rounded-full px-2 py-0.5 ${a.source === "ai" ? "bg-accent-soft text-accent-strong" : "bg-surface-2 text-muted"}`}>
+              <Badge tone={a.source === "ai" ? "accent" : "neutral"}>
                 {a.source === "ai" ? "AI suggestion" : "Community"}
-              </span>
-              {a.accepted && <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-700">✓ Accepted</span>}
+              </Badge>
+              {a.accepted && (
+                <Badge tone="success">
+                  <Check className="h-3 w-3" /> Accepted
+                </Badge>
+              )}
             </div>
-            <div className="mt-2 whitespace-pre-wrap text-sm">{a.body}</div>
+            <div className="mt-2">
+              <Markdown>{a.body}</Markdown>
+            </div>
             <div className="mt-3 flex items-center gap-2">
-              <button
-                onClick={() => act(a.id, "upvote")}
-                disabled={working !== null}
-                className="rounded-lg border border-border px-2 py-1 text-xs text-foreground/70 hover:bg-surface-2 disabled:opacity-60"
-              >
-                ▲ {a.upvotes}
-              </button>
+              <Button variant="outline" size="sm" onClick={() => act(a.id, "upvote")} disabled={working !== null}>
+                <ChevronUp className="h-3.5 w-3.5" /> {a.upvotes}
+              </Button>
               {!a.accepted && (
-                <button
-                  onClick={() => act(a.id, "accept")}
-                  disabled={working !== null}
-                  className="rounded-lg border border-border px-2 py-1 text-xs text-foreground/70 hover:bg-surface-2 disabled:opacity-60"
-                >
+                <Button variant="ghost" size="sm" onClick={() => act(a.id, "accept")} disabled={working !== null}>
                   Accept
-                </button>
+                </Button>
               )}
             </div>
           </li>
