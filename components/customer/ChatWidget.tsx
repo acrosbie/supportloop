@@ -34,7 +34,9 @@ function patchLast(arr: Msg[], patch: Partial<Msg>): Msg[] {
   return copy;
 }
 
-export default function ChatWidget() {
+export default function ChatWidget({ orgSlug, orgName }: { orgSlug?: string; orgName?: string }) {
+  const name = orgName ?? "Orbit";
+  const articleBase = orgSlug ? `/help/${orgSlug}/article` : "/user/article";
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -64,7 +66,7 @@ export default function ChatWidget() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: q }),
+        body: JSON.stringify({ message: q, orgSlug }),
       });
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => ({}));
@@ -98,7 +100,7 @@ export default function ChatWidget() {
       const res = await fetch("/api/ticket", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: question }),
+        body: JSON.stringify({ message: question, orgSlug }),
       });
       const j = await res.json();
       if (!res.ok || !j.ok) throw new Error(j.error || "Could not create ticket");
@@ -114,7 +116,7 @@ export default function ChatWidget() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          aria-label="Open Orbit Assistant"
+          aria-label={`Open ${name} Assistant`}
           className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-fg shadow-lg transition-transform hover:scale-105"
         >
           <MessageCircle className="h-6 w-6" />
@@ -130,7 +132,7 @@ export default function ChatWidget() {
                 <Sparkles className="h-5 w-5" />
               </span>
               <div className="leading-tight">
-                <div className="text-sm font-semibold">Orbit Assistant</div>
+                <div className="text-sm font-semibold">{name} Assistant</div>
                 <div className="text-[11px] opacity-90">Replies instantly · from the help center</div>
               </div>
             </div>
@@ -143,7 +145,7 @@ export default function ChatWidget() {
             {messages.length === 0 && (
               <div className="space-y-3">
                 <div className="max-w-[92%] rounded-2xl rounded-bl-sm bg-surface-2 px-3 py-2 text-sm">
-                  👋 Hi! I&apos;m the Orbit Assistant. Ask me anything — I answer from the help center, and if I can&apos;t, I&apos;ll open a support ticket for you.
+                  👋 Hi! I&apos;m the {name} Assistant. Ask me anything — I answer from the help center, and if I can&apos;t, I&apos;ll open a support ticket for you.
                 </div>
                 <div className="text-xs font-medium text-muted">Try one of these</div>
                 <div className="space-y-1.5">
@@ -192,7 +194,7 @@ export default function ChatWidget() {
                             {m.sources.map((s) => (
                               <Link
                                 key={s.id}
-                                href={`/user/article/${s.id}`}
+                                href={`${articleBase}/${s.id}`}
                                 className="rounded-full border border-border bg-white px-2 py-0.5 text-[11px] text-accent-strong hover:border-accent"
                               >
                                 {s.title}

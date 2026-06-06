@@ -24,7 +24,13 @@ const ICONS: Record<string, LucideIcon> = {
 };
 const iconFor = (cat: string): LucideIcon => ICONS[cat] ?? BookOpen;
 
-export default function HelpSearch({ articles }: { articles: ArticleLite[] }) {
+export default function HelpSearch({
+  articles,
+  articleBase = "/user/article",
+}: {
+  articles: ArticleLite[];
+  articleBase?: string;
+}) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
 
@@ -109,7 +115,7 @@ export default function HelpSearch({ articles }: { articles: ArticleLite[] }) {
               const Icon = iconFor(a.category);
               return (
                 <li key={a.id}>
-                  <Link href={`/user/article/${a.id}`} className="flex items-center gap-3 px-5 py-3.5 text-sm hover:bg-surface-2">
+                  <Link href={`${articleBase}/${a.id}`} className="flex items-center gap-3 px-5 py-3.5 text-sm hover:bg-surface-2">
                     <Icon className="h-4 w-4 shrink-0 text-muted" />
                     <span className={cn("min-w-0 flex-1")}>
                       <span className="font-medium">{a.title}</span>
