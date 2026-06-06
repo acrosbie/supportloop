@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Can I import articles from Zendesk or Intercom?",
+    "body": "We have a few hundred help articles in Zendesk. Is there a way to bring them into SupportLoop without copy-pasting each one?",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "Yes — export your articles as Markdown (or export HTML and convert), then paste or upload them in Admin → Knowledge. They're chunked and embedded automatically. A native Zendesk/Intercom sync is on the roadmap; for now the Markdown import handles bulk loads well.",
+    "answer_source": "ai"
+  },
+  {
+    "title": "How do I make the assistant answer more questions?",
+    "body": "Our bot escalates a lot of things I think it could answer. How do I make it more willing to answer?",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "Two levers: coverage and threshold. First look at what's escalating — most 'it could have answered' cases are actually missing or thin articles, so write those. If retrieval is matching but just below the line, you can lower the similarity threshold slightly, but do it carefully and re-run evals so you don't start answering on weak matches.",
+    "answer_source": "user"
+  },
+  {
+    "title": "Does the assistant ever make up answers?",
+    "body": "My team is nervous about an AI inventing refund or security policy. How does SupportLoop prevent that?",
+    "status": "answered",
+    "has_kb_gap": false,
+    "answer": "By design it only answers from your published knowledge, and when retrieval is below the similarity threshold it escalates to a human instead of guessing. You also see the cited sources on every answer, so it won't state a policy your articles don't contain.",
+    "answer_source": "ai"
+  },
+  {
+    "title": "Can end-customers chat without creating an account?",
+    "body": "Do our customers need to sign up before they can use the help center chat, or can they ask anonymously?",
+    "status": "open",
+    "has_kb_gap": true
+  }
+]

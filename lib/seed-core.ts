@@ -5,7 +5,9 @@ import { embed, toVector } from "./embeddings";
 import type { Urgency } from "./types";
 import kbArticles from "../supabase/seed/kb-articles.json";
 import communityData from "../supabase/seed/community.json";
-import { DEMO_ACCOUNTS } from "./demo-accounts";
+import supportloopKb from "../supabase/seed/supportloop-kb.json";
+import supportloopCommunity from "../supabase/seed/supportloop-community.json";
+import { DEMO_ACCOUNTS, SUPPORTLOOP_ACCOUNTS } from "./demo-accounts";
 
 // Shapes of the seed JSON files.
 interface KbSeed {
@@ -124,6 +126,82 @@ const TICKET_TEMPLATES: {
   },
 ];
 
+// Dogfood templates — support questions a SupportLoop customer (a support team)
+// would actually file about the product itself.
+const SUPPORTLOOP_TEMPLATES: typeof TICKET_TEMPLATES = [
+  {
+    intent: "Knowledge import",
+    queue: "Onboarding",
+    urgency: ["low", "medium", "medium"],
+    samples: [
+      { subject: "Bulk import from Zendesk", body: "We have ~300 articles in Zendesk. What's the fastest way to get them into our workspace?" },
+      { subject: "Markdown upload didn't embed", body: "I uploaded a few markdown files but the assistant doesn't find them yet. How long does embedding take?" },
+    ],
+  },
+  {
+    intent: "AI quality",
+    queue: "AI",
+    urgency: ["medium", "high"],
+    samples: [
+      { subject: "Assistant escalates too often", body: "The bot is opening tickets for questions I'm sure are covered. How do I see what it retrieved?" },
+      { subject: "Bot answered with an old policy", body: "We updated our refund window but the assistant quoted the old one. How do I refresh it?" },
+    ],
+  },
+  {
+    intent: "Threshold",
+    queue: "AI",
+    urgency: ["low", "medium"],
+    samples: [
+      { subject: "Tune the similarity threshold", body: "Where do I change how strict the grounding threshold is, and how do I tell if I broke something?" },
+    ],
+  },
+  {
+    intent: "Widget",
+    queue: "Onboarding",
+    urgency: ["low", "medium"],
+    samples: [
+      { subject: "Embed the widget on Webflow", body: "How do I add the chat widget to a Webflow site? Do I need a developer?" },
+      { subject: "Match the widget to our brand", body: "Can I change the widget colors to match our brand palette?" },
+    ],
+  },
+  {
+    intent: "Billing",
+    queue: "Billing",
+    urgency: ["low", "medium"],
+    samples: [
+      { subject: "Add two agent seats", body: "We're hiring two more reps — how do I add seats and what's the cost?" },
+      { subject: "Upgrade to the Team plan", body: "We want KB import and evals. How do we move from Free to Team?" },
+    ],
+  },
+  {
+    intent: "Routing",
+    queue: "Operations",
+    urgency: ["low", "medium"],
+    samples: [
+      { subject: "Set SLA targets per priority", body: "I want urgent tickets to have a 2-hour SLA. Where do I configure SLA per priority?" },
+      { subject: "Auto-assign by queue", body: "Can tickets in the Billing queue route automatically to our billing specialist?" },
+    ],
+  },
+  {
+    intent: "Team",
+    queue: "Account",
+    urgency: ["low", "low"],
+    samples: [
+      { subject: "Invite my team", body: "How do I invite teammates and set them as agents vs admins?" },
+      { subject: "Make an agent an admin", body: "I need to give one of my agents admin access to manage the knowledge base." },
+    ],
+  },
+  {
+    intent: "Analytics",
+    queue: "Operations",
+    urgency: ["low", "medium"],
+    samples: [
+      { subject: "Deflection rate looks low", body: "Our deflection is lower than expected in week one. Is that normal, and how do we improve it?" },
+      { subject: "Export the dashboard", body: "Can I export deflection and CSAT for a weekly report to leadership?" },
+    ],
+  },
+];
+
 const SENTIMENTS_POSITIVE = ["satisfied", "neutral", "neutral", "satisfied"];
 const SENTIMENTS_NEGATIVE = ["frustrated", "urgent", "confused", "frustrated"];
 
@@ -180,14 +258,14 @@ interface GenTicket {
   resolved_at: string | null;
 }
 
-function generateTickets(): { tickets: GenTicket[]; messages: unknown[]; events: unknown[] } {
+function generateTickets(templates: typeof TICKET_TEMPLATES, count: number): { tickets: GenTicket[]; messages: unknown[]; events: unknown[] } {
   const tickets: GenTicket[] = [];
   const messages: unknown[] = [];
   const events: unknown[] = [];
   const now = Date.now();
 
-  for (let i = 0; i < TARGET_TICKETS; i++) {
-    const tpl = pick(TICKET_TEMPLATES);
+  for (let i = 0; i < count; i++) {
+    const tpl = pick(templates);
     const sample = pick(tpl.samples);
     const id = randomUUID();
 
@@ -291,6 +369,27 @@ function generateTickets(): { tickets: GenTicket[]; messages: unknown[]; events:
   return { tickets, messages, events };
 }
 
+// Case-management enrichment shared by both orgs: priority, tags, SLA, first
+// response time, and a chunk of open work assigned to the org's demo agent.
+function enrichTickets(tickets: GenTicket[], agentId: string | null): void {
+  const tagFor = (intent: string) => intent.split(/[ /&]+/)[0].toLowerCase();
+  const slaHours = (p: string) => (p === "urgent" ? 2 : p === "high" ? 8 : p === "normal" ? 24 : 72);
+  for (const t of tickets) {
+    if (t.is_hero) continue;
+    const pr =
+      t.urgency === "high"
+        ? pick(["high", "urgent"])
+        : t.urgency === "medium"
+          ? pick(["normal", "normal", "high"])
+          : pick(["low", "normal"]);
+    t.priority = pr;
+    t.tags = Math.random() < 0.15 ? [tagFor(t.intent), "vip"] : [tagFor(t.intent)];
+    t.sla_due_at = new Date(new Date(t.created_at).getTime() + slaHours(pr) * 3600_000).toISOString();
+    t.first_response_at = t.status === "open" ? null : t.resolved_at;
+    if ((t.status === "open" || t.status === "assisted") && agentId && Math.random() < 0.45) t.assignee_id = agentId;
+  }
+}
+
 // The deliberately seeded "hero" ticket that travels the whole flywheel in the
 // guided tour. Its topic (meeting transcripts) is NOT in the seeded KB, so it
 // escalates cleanly and, once resolved, becomes a genuinely useful new article.
@@ -331,10 +430,14 @@ function buildHeroTicket(): { ticket: GenTicket; messages: unknown[] } {
  * Ensure the three one-click demo accounts exist with the right role + password.
  * Idempotent — safe to run on every seed/reset. Returns role -> user id.
  */
-async function ensureDemoAccounts(sb: SupabaseClient, orgId: string): Promise<Record<string, string>> {
+async function ensureDemoAccounts(
+  sb: SupabaseClient,
+  orgId: string,
+  accounts: typeof DEMO_ACCOUNTS
+): Promise<Record<string, string>> {
   const ids: Record<string, string> = {};
   const { data: list } = await sb.auth.admin.listUsers({ page: 1, perPage: 200 });
-  for (const acc of DEMO_ACCOUNTS) {
+  for (const acc of accounts) {
     const existing = list?.users.find((u) => u.email === acc.email);
     if (existing) {
       await sb.auth.admin.updateUserById(existing.id, {
@@ -392,7 +495,7 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   }
 
   // Demo accounts (idempotent — they persist across resets).
-  const demoIds = await ensureDemoAccounts(sb, orgId);
+  const demoIds = await ensureDemoAccounts(sb, orgId, DEMO_ACCOUNTS);
 
   // 2. KB articles + embeddings.
   const kb = kbArticles as KbSeed[];
@@ -413,7 +516,7 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   await insertAll(sb, "kb_articles", kbRows);
 
   // 3. Tickets + messages + events (generated) + the hero ticket.
-  const { tickets, messages, events } = generateTickets();
+  const { tickets, messages, events } = generateTickets(TICKET_TEMPLATES, TARGET_TICKETS);
   const hero = buildHeroTicket();
   hero.ticket.requester_id = demoIds.customer ?? null;
   hero.ticket.requester_email = "customer@supportloop.demo";
@@ -422,22 +525,7 @@ export async function seedDatabase(): Promise<Record<string, number>> {
 
   // Case-management enrichment: priority, tags, SLA, first response, assignment.
   const agentId = demoIds.agent ?? null;
-  const tagFor = (intent: string) => intent.split(/[ /&]+/)[0].toLowerCase();
-  const slaHours = (p: string) => (p === "urgent" ? 2 : p === "high" ? 8 : p === "normal" ? 24 : 72);
-  for (const t of tickets) {
-    if (t.is_hero) continue;
-    const pr =
-      t.urgency === "high"
-        ? pick(["high", "urgent"])
-        : t.urgency === "medium"
-          ? pick(["normal", "normal", "high"])
-          : pick(["low", "normal"]);
-    t.priority = pr;
-    t.tags = Math.random() < 0.15 ? [tagFor(t.intent), "vip"] : [tagFor(t.intent)];
-    t.sla_due_at = new Date(new Date(t.created_at).getTime() + slaHours(pr) * 3600_000).toISOString();
-    t.first_response_at = t.status === "open" ? null : t.resolved_at;
-    if ((t.status === "open" || t.status === "assisted") && agentId && Math.random() < 0.45) t.assignee_id = agentId;
-  }
+  enrichTickets(tickets, agentId);
 
   await insertAll(sb, "tickets", tickets.map((t) => ({ ...t, org_id: orgId })));
   await insertAll(sb, "ticket_messages", messages.map((m) => ({ ...(m as Record<string, unknown>), org_id: orgId })));
@@ -478,6 +566,9 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   const canned = CANNED.map((c) => ({ id: randomUUID(), org_id: orgId, ...c }));
   await insertAll(sb, "canned_responses", canned);
 
+  // Dogfood: seed the SupportLoop org with its own real product data.
+  const sl = await seedSupportLoopOrg(sb);
+
   return {
     kb_articles: kbRows.length,
     tickets: tickets.length,
@@ -487,5 +578,95 @@ export async function seedDatabase(): Promise<Record<string, number>> {
     community_answers: answers.length,
     demo_accounts: Object.keys(demoIds).length,
     canned_responses: canned.length,
+    supportloop_kb: sl.kb_articles,
+    supportloop_tickets: sl.tickets,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Dogfood org — SupportLoop running its own support on SupportLoop. Seeded
+// against the separate "supportloop" organization with product-specific data.
+// ---------------------------------------------------------------------------
+async function seedSupportLoopOrg(sb: SupabaseClient): Promise<{ kb_articles: number; tickets: number }> {
+  const { data: org } = await sb.from("organizations").select("id").eq("slug", "supportloop").maybeSingle();
+  if (!org) return { kb_articles: 0, tickets: 0 };
+  const orgId = org.id as string;
+
+  for (const table of [
+    "events",
+    "ticket_messages",
+    "community_answers",
+    "community_questions",
+    "eval_runs",
+    "canned_responses",
+    "tickets",
+    "kb_articles",
+  ]) {
+    const { error } = await sb.from(table).delete().eq("org_id", orgId);
+    if (error) throw new Error(`wipe supportloop ${table}: ${error.message}`);
+  }
+
+  const ids = await ensureDemoAccounts(sb, orgId, SUPPORTLOOP_ACCOUNTS);
+  const agentId = ids.admin ?? null;
+
+  // KB + embeddings.
+  const kb = supportloopKb as KbSeed[];
+  const kbEmbeddings = await embed(kb.map((a) => `${a.title}\n\n${a.body}`), "document");
+  const nowIso = new Date().toISOString();
+  const kbRows = kb.map((a, i) => ({
+    id: randomUUID(),
+    org_id: orgId,
+    title: a.title,
+    body: a.body,
+    category: a.category,
+    tags: a.tags,
+    status: "published",
+    source: "seed",
+    embedding: toVector(kbEmbeddings[i]),
+    published_at: nowIso,
+  }));
+  await insertAll(sb, "kb_articles", kbRows);
+
+  // Tickets (generated from SupportLoop-specific templates) + enrichment.
+  const { tickets, messages, events } = generateTickets(SUPPORTLOOP_TEMPLATES, 60);
+  enrichTickets(tickets, agentId);
+  await insertAll(sb, "tickets", tickets.map((t) => ({ ...t, org_id: orgId })));
+  await insertAll(sb, "ticket_messages", messages.map((m) => ({ ...(m as Record<string, unknown>), org_id: orgId })));
+  await insertAll(sb, "events", events.map((e) => ({ ...(e as Record<string, unknown>), org_id: orgId })));
+
+  // Community + answers + embeddings.
+  const community = supportloopCommunity as CommunitySeed[];
+  const cqEmbeddings = await embed(community.map((q) => `${q.title}\n\n${q.body}`), "document");
+  const cqRows = community.map((q, i) => ({
+    id: randomUUID(),
+    org_id: orgId,
+    title: q.title,
+    body: q.body,
+    status: q.status,
+    has_kb_gap: q.has_kb_gap,
+    embedding: toVector(cqEmbeddings[i]),
+  }));
+  await insertAll(sb, "community_questions", cqRows);
+  const answers = community
+    .map((q, i) =>
+      q.answer
+        ? {
+            id: randomUUID(),
+            org_id: orgId,
+            question_id: cqRows[i].id,
+            body: q.answer,
+            source: q.answer_source ?? "user",
+            accepted: true,
+            upvotes: Math.floor(Math.random() * 12),
+          }
+        : null
+    )
+    .filter((a): a is NonNullable<typeof a> => a !== null);
+  if (answers.length) await insertAll(sb, "community_answers", answers);
+
+  // Canned macros (reuse the generic set).
+  const canned = CANNED.map((c) => ({ id: randomUUID(), org_id: orgId, ...c }));
+  await insertAll(sb, "canned_responses", canned);
+
+  return { kb_articles: kbRows.length, tickets: tickets.length };
 }

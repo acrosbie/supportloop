@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
-import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
+import { DEMO_ACCOUNTS, SUPPORTLOOP_ACCOUNTS } from "@/lib/demo-accounts";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/toaster";
@@ -90,13 +90,39 @@ function LoginInner() {
           )}
 
           <div className="mb-2 mt-6 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
-            One-click demo logins
+            Orbit demo · one-click
             <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] normal-case text-accent-strong">
               no password — click to enter
             </span>
           </div>
           <div className="space-y-2">
             {DEMO_ACCOUNTS.map((acc) => (
+              <button
+                key={acc.email}
+                onClick={() => doSignIn(acc.email, acc.password)}
+                disabled={busy !== null}
+                className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-3 text-left transition-colors hover:border-accent disabled:opacity-60"
+              >
+                <Avatar name={acc.name} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">
+                    {acc.name} <span className="font-normal capitalize text-muted">· {acc.role}</span>
+                  </span>
+                  <span className="block truncate text-xs text-muted">{acc.blurb}</span>
+                </span>
+                {busy === acc.email ? <span className="text-xs text-muted">…</span> : <ArrowRight className="h-4 w-4 text-muted" />}
+              </button>
+            ))}
+          </div>
+
+          <div className="mb-2 mt-5 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
+            Dogfood
+            <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] normal-case text-muted">
+              SupportLoop, running on SupportLoop
+            </span>
+          </div>
+          <div className="space-y-2">
+            {SUPPORTLOOP_ACCOUNTS.map((acc) => (
               <button
                 key={acc.email}
                 onClick={() => doSignIn(acc.email, acc.password)}

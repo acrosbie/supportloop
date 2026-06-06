@@ -39,3 +39,17 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     blurb: "Ops dashboards, quality evals, and admin controls.",
   },
 ];
+
+// The dogfood org: SupportLoop running its own support on SupportLoop. Lives in
+// a separate organization ("supportloop"), so it must be seeded against that org
+// — never mixed in with the Orbit demo accounts above.
+export const SUPPORTLOOP_ACCOUNTS: DemoAccount[] = [
+  {
+    email: "founder@supportloop.team",
+    password: DEMO_PASSWORD,
+    role: "admin",
+    name: "Sam Okoye",
+    home: "/ops",
+    blurb: "SupportLoop's own team — we run our support on SupportLoop.",
+  },
+];

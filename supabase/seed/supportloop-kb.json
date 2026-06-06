@@ -1,0 +1,74 @@
+[
+  {
+    "title": "Create your workspace and invite your team",
+    "body": "When you sign up for SupportLoop you create a workspace — an isolated organization that owns your knowledge, tickets, metrics, and settings. The person who signs up becomes the first admin.\n\nTo add teammates, open Admin → Team and send an invite. Agents can work the ticket inbox and use AI assist; admins can also manage the knowledge base, settings, and roles. You can change anyone's role at any time.\n\nEach workspace is completely separate from every other. Your data is only ever used to answer your own customers.",
+    "category": "Getting Started",
+    "tags": ["workspace", "onboarding", "team"]
+  },
+  {
+    "title": "Embed the chat assistant on your site",
+    "body": "You can put the SupportLoop assistant anywhere your customers are. Copy your workspace's embed snippet and drop it into your site; the widget loads scoped to your workspace, so it only answers from your knowledge base.\n\nThe widget deflects routine questions in place and opens a ticket when it can't help — the same grounded behavior as your hosted help center. Styling options let it match your brand.\n\n(The embeddable widget is rolling out; your hosted help center is available today.)",
+    "category": "Getting Started",
+    "tags": ["widget", "embed", "setup"]
+  },
+  {
+    "title": "Import your knowledge base",
+    "body": "You can bring your existing help center into SupportLoop. In Admin → Knowledge, paste or upload Markdown — one article per file, or split a long document by headings. We chunk each article, generate embeddings, and make it searchable by the assistant within a minute or two.\n\nArticles are published by default so the assistant can use them immediately. You can unpublish an article to take it out of retrieval without deleting it, or edit it — published edits are automatically re-embedded.\n\nStart with your most common questions: billing, account access, and your top how-to guides usually deflect the most volume.",
+    "category": "Knowledge Base",
+    "tags": ["import", "knowledge-base", "embeddings"]
+  },
+  {
+    "title": "Write articles the assistant can actually use",
+    "body": "Retrieval works best on focused articles. Give each article one clear topic and a descriptive title — \"Reset your password\" beats \"Account FAQ.\" Put the answer near the top and use plain language your customers would actually type.\n\nAvoid burying multiple unrelated answers in one long page; split them so retrieval can surface exactly the right one. Keep policies — refunds, security, SLAs — explicit and current, because the assistant will only ever state what your articles say.\n\nIf customers keep asking something the bot can't answer, that's a knowledge gap. Write the article, and deflection improves immediately.",
+    "category": "Knowledge Base",
+    "tags": ["knowledge-base", "writing", "best-practices"]
+  },
+  {
+    "title": "Grounding and the similarity threshold",
+    "body": "Every retrieval gets a similarity score — how close the best-matching article is to the customer's question. SupportLoop compares the top score to a similarity threshold. Above it, the assistant answers from your knowledge; below it, it escalates instead of guessing.\n\nA higher threshold makes the assistant more conservative (fewer answers, fewer mistakes); a lower threshold makes it more eager (more answers, more risk of a weak match). The default is tuned to favor accuracy.\n\nYou can see the grounding decision and the cited sources on every answer, so you always know why the assistant did what it did.",
+    "category": "AI & Grounding",
+    "tags": ["grounding", "threshold", "retrieval"]
+  },
+  {
+    "title": "Why did the assistant escalate instead of answering?",
+    "body": "If the assistant opened a ticket rather than answering, it means retrieval didn't find a strong enough match in your knowledge base for that question. This is working as intended — we'd rather hand off to a human than invent an answer.\n\nThe most common cause is a missing or thin article. Check the ticket's topic, then add or improve the relevant article and publish it. The next time someone asks, the assistant will likely deflect it.\n\nA steady stream of escalations on the same topic is your highest-value signal for what to write next.",
+    "category": "AI & Grounding",
+    "tags": ["escalation", "grounding", "knowledge-gap"]
+  },
+  {
+    "title": "Triage, priority, SLA, and routing",
+    "body": "When a ticket is created, SupportLoop can classify it — intent, urgency, and customer sentiment — so your team sees what matters first. You set priority (low, normal, high, urgent), and each priority maps to an SLA target so due dates are calculated automatically.\n\nTickets can be organized into queues and assigned to agents. Use the views in the agent inbox — my open, unassigned, urgent — so nothing slips.\n\nThe goal is simple: your team spends its time on the tickets that actually need a human.",
+    "category": "Operations",
+    "tags": ["triage", "sla", "routing"]
+  },
+  {
+    "title": "Reading your ops dashboard",
+    "body": "The dashboard turns activity into the few numbers that matter. Deflection rate is the share of questions resolved by self-service without an agent. Automation rate is the share of tickets the AI assisted on. CSAT reflects customer satisfaction, and the volume chart and top intents show where demand is coming from.\n\nWatch deflection and automation together: rising deflection means your knowledge base is doing more of the work. \"KB articles from tickets\" shows the knowledge loop paying off.\n\nThese are the metrics that prove the AI moved a number — not just that a bot exists.",
+    "category": "Operations",
+    "tags": ["analytics", "metrics", "dashboard"]
+  },
+  {
+    "title": "The knowledge loop: turn resolved tickets into articles",
+    "body": "Every resolved ticket is potential knowledge. In the agent workspace, SupportLoop can draft a reusable help article from a resolved conversation — you review and edit it, then publish. Nothing is auto-published; a human always approves.\n\nOnce published, the article is embedded and immediately improves retrieval, so the next customer with that question gets deflected instead of opening a ticket.\n\nThis is the flywheel: resolutions become knowledge, knowledge increases deflection, deflection frees your team to resolve the next thing.",
+    "category": "Operations",
+    "tags": ["knowledge-loop", "articles", "deflection"]
+  },
+  {
+    "title": "Measure reply quality with evals",
+    "body": "Good AI support isn't a vibe — it's measured. SupportLoop ships an eval harness that runs a set of golden questions through your real retrieval pipeline and checks whether questions that should be answered ground above threshold, and questions that should escalate fall below it.\n\nRun it after you change your knowledge base or tune the threshold to make sure you didn't regress. In production you'd expand this into graded sets per intent with gates on every change.\n\nThe point: ship changes with evidence, not guesses.",
+    "category": "Operations",
+    "tags": ["evals", "quality", "testing"]
+  },
+  {
+    "title": "Roles and permissions",
+    "body": "SupportLoop has three roles. Customers use your help center, chat with the assistant, and track their tickets. Agents work the ticket inbox, use AI triage and grounded drafts, and run the knowledge loop. Admins can do everything agents can, plus manage the knowledge base, team, roles, and workspace settings.\n\nAdmins change roles in Admin → Team. Give teammates the least access they need — most support staff are agents; reserve admin for the people who manage knowledge and settings.",
+    "category": "Account & Team",
+    "tags": ["roles", "permissions", "team"]
+  },
+  {
+    "title": "How SupportLoop keeps your data isolated",
+    "body": "SupportLoop is multi-tenant: every workspace is a separate organization, and every record — knowledge, tickets, community, metrics — is scoped to it. Retrieval is scoped too, so the assistant can only ever surface your workspace's knowledge.\n\nThat means one workspace can never see, search, or answer from another's data. When you sign up, you get a private workspace that's yours alone.\n\nIn production this is backed by row-level security and per-tenant access controls on top of the application-level scoping.",
+    "category": "Account & Team",
+    "tags": ["security", "multi-tenant", "isolation"]
+  }
+]
