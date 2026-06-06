@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createTicketFromChat } from "@/lib/data";
 import { getAuth } from "@/lib/auth";
-import { resolveViewerOrgId } from "@/lib/org";
+import { resolveViewerOrgId, getOrgIdBySlug } from "@/lib/org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,8 +11,9 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   let message: string;
   let subject: string | undefined;
+  let orgSlug: string | undefined;
   try {
-    ({ message, subject } = await req.json());
+    ({ message, subject, orgSlug } = await req.json());
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -21,7 +22,8 @@ export async function POST(req: NextRequest) {
   }
   try {
     const auth = await getAuth();
-    const orgId = await resolveViewerOrgId();
+    const orgId = orgSlug ? await getOrgIdBySlug(orgSlug) : await resolveViewerOrgId();
+    if (!orgId) return Response.json({ ok: false, error: "Unknown workspace" }, { status: 404 });
     const ticketId = await createTicketFromChat(orgId, message, subject, auth?.id ?? null, auth?.email ?? null);
     return Response.json({ ok: true, ticketId });
   } catch (e) {

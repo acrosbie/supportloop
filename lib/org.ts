@@ -12,6 +12,24 @@ export async function getOrgIdBySlug(slug: string): Promise<string | null> {
   return (data?.id as string) ?? null;
 }
 
+export interface OrgSummary {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export async function getOrgBySlug(slug: string): Promise<OrgSummary | null> {
+  const { data, error } = await supabaseAdmin().from("organizations").select("id,name,slug").eq("slug", slug).maybeSingle();
+  if (error) throw new Error(`getOrgBySlug: ${error.message}`);
+  return (data as OrgSummary) ?? null;
+}
+
+export async function getOrgById(id: string): Promise<OrgSummary | null> {
+  const { data, error } = await supabaseAdmin().from("organizations").select("id,name,slug").eq("id", id).maybeSingle();
+  if (error) throw new Error(`getOrgById: ${error.message}`);
+  return (data as OrgSummary) ?? null;
+}
+
 export async function getDemoOrgId(): Promise<string> {
   if (cachedDemoOrgId) return cachedDemoOrgId;
   const id = await getOrgIdBySlug(DEMO_ORG_SLUG);

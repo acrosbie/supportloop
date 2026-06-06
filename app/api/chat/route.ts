@@ -3,7 +3,7 @@ import { retrieve } from "@/lib/retrieve";
 import { decideGrounding } from "@/lib/guardrail";
 import { MODEL_GENERATE, streamMessageText } from "@/lib/anthropic";
 import { logEvent } from "@/lib/data";
-import { resolveViewerOrgId } from "@/lib/org";
+import { resolveViewerOrgId, getOrgIdBySlug } from "@/lib/org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,8 +15,9 @@ export const maxDuration = 30;
 // client can render citation chips and a confidence indicator.
 export async function POST(req: NextRequest) {
   let message: string;
+  let orgSlug: string | undefined;
   try {
-    ({ message } = await req.json());
+    ({ message, orgSlug } = await req.json());
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -24,7 +25,9 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Missing "message" string' }, { status: 400 });
   }
 
-  const orgId = await resolveViewerOrgId();
+  // Embeddable widget passes its workspace slug; in-app surfaces use the viewer's org.
+  const orgId = orgSlug ? await getOrgIdBySlug(orgSlug) : await resolveViewerOrgId();
+  if (!orgId) return Response.json({ error: "Unknown workspace" }, { status: 404 });
   let matches;
   try {
     matches = await retrieve(message, orgId, 5);
