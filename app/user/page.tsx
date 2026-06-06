@@ -1,11 +1,13 @@
 import { getPublishedArticles } from "@/lib/data";
+import { resolveViewerOrgId } from "@/lib/org";
 import HelpSearch from "@/components/customer/HelpSearch";
 import ChatWidget from "@/components/customer/ChatWidget";
 
 export const dynamic = "force-dynamic";
 
 export default async function HelpCenter() {
-  const articles = await getPublishedArticles();
+  const orgId = await resolveViewerOrgId();
+  const articles = await getPublishedArticles(orgId);
   const lite = articles.map((a) => ({ id: a.id, title: a.title, category: a.category, tags: a.tags }));
 
   return (

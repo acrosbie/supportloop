@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/toaster";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [company, setCompany] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,16 +23,16 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ company, name, email, password }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Sign up failed");
-      // Establish the session, then go to the customer workspace.
+      // Establish the session, then drop into the new (empty) workspace.
       const sb = createSupabaseBrowser();
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message);
-      toast.success("Welcome to Orbit");
-      router.push("/user");
+      toast.success("Workspace created");
+      router.push("/agent");
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign up failed");
@@ -47,10 +48,19 @@ export default function SignupPage() {
           <span className="font-semibold tracking-tight">SupportLoop</span>
         </Link>
 
-        <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
-        <p className="mt-1 text-sm text-muted">You'll join as a customer of Orbit. No email verification in the demo.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Create your workspace</h1>
+        <p className="mt-1 text-sm text-muted">
+          Start a SupportLoop workspace for your support team — you'll be its admin. No email verification in the demo.
+        </p>
 
         <form onSubmit={submit} className="mt-6 space-y-3">
+          <input
+            required
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            placeholder="Company or workspace name"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -62,7 +72,7 @@ export default function SignupPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder="you@company.com"
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
           />
           <input
@@ -75,7 +85,7 @@ export default function SignupPage() {
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
           />
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Creating account…" : "Create account"}
+            {busy ? "Creating workspace…" : "Create workspace"}
           </Button>
         </form>
 

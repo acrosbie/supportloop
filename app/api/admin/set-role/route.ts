@@ -19,8 +19,9 @@ export async function POST(req: NextRequest) {
   if (!userId || !["customer", "agent", "admin"].includes(role)) {
     return Response.json({ error: "userId and a valid role are required" }, { status: 400 });
   }
+  if (!auth.orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
   try {
-    await setUserRole(userId, role as "customer" | "agent" | "admin");
+    await setUserRole(auth.orgId, userId, role as "customer" | "agent" | "admin");
     return Response.json({ ok: true });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : "Failed" }, { status: 500 });

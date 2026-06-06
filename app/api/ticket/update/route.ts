@@ -19,8 +19,9 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
   if (!ticketId || !fields) return Response.json({ error: "ticketId and fields required" }, { status: 400 });
+  if (!auth.orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
   try {
-    await updateTicketFields(ticketId, fields);
+    await updateTicketFields(auth.orgId, ticketId, fields);
     return Response.json({ ok: true });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : "Update failed" }, { status: 500 });

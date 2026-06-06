@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { retrieve } from "@/lib/retrieve";
+import { resolveViewerOrgId } from "@/lib/org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,8 @@ export async function GET(req: NextRequest) {
   }
   const k = Number(req.nextUrl.searchParams.get("k") ?? 5);
   try {
-    const matches = await retrieve(query, k);
+    const orgId = await resolveViewerOrgId();
+    const matches = await retrieve(query, orgId, k);
     return NextResponse.json({ query, matches });
   } catch (e) {
     return NextResponse.json({ error: errorMessage(e) }, { status: 500 });
@@ -30,7 +32,8 @@ export async function POST(req: NextRequest) {
     if (!query || typeof query !== "string") {
       return NextResponse.json({ error: 'Missing "query" string' }, { status: 400 });
     }
-    const matches = await retrieve(query, k ?? 5, minSimilarity ?? 0);
+    const orgId = await resolveViewerOrgId();
+    const matches = await retrieve(query, orgId, k ?? 5, minSimilarity ?? 0);
     return NextResponse.json({ query, matches });
   } catch (e) {
     return NextResponse.json({ error: errorMessage(e) }, { status: 500 });

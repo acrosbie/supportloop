@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MessageSquare, MessageCircle, CheckCircle2 } from "lucide-react";
 import { getCommunityQuestions } from "@/lib/data";
+import { resolveViewerOrgId } from "@/lib/org";
 import { Badge } from "@/components/ui/badge";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,8 @@ function StatePill({ hasGap, status }: { hasGap: boolean; status: string }) {
 }
 
 export default async function Community() {
-  const questions = await getCommunityQuestions();
+  const orgId = await resolveViewerOrgId();
+  const questions = await getCommunityQuestions(orgId);
   const gaps = questions.filter((q) => q.has_kb_gap);
 
   return (

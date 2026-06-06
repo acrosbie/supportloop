@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const me = await requireRole(["admin"]);
-  const [profiles, articles] = await Promise.all([getAllProfiles(), getAllArticles()]);
+  const orgId = me.orgId ?? "";
+  const [profiles, articles] = await Promise.all([getAllProfiles(orgId), getAllArticles(orgId)]);
 
   return (
     <div className="mx-auto max-w-4xl space-y-10 px-6 py-8">

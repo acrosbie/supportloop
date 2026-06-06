@@ -331,7 +331,7 @@ function buildHeroTicket(): { ticket: GenTicket; messages: unknown[] } {
  * Ensure the three one-click demo accounts exist with the right role + password.
  * Idempotent — safe to run on every seed/reset. Returns role -> user id.
  */
-async function ensureDemoAccounts(sb: SupabaseClient): Promise<Record<string, string>> {
+async function ensureDemoAccounts(sb: SupabaseClient, orgId: string): Promise<Record<string, string>> {
   const ids: Record<string, string> = {};
   const { data: list } = await sb.auth.admin.listUsers({ page: 1, perPage: 200 });
   for (const acc of DEMO_ACCOUNTS) {
@@ -339,21 +339,21 @@ async function ensureDemoAccounts(sb: SupabaseClient): Promise<Record<string, st
     if (existing) {
       await sb.auth.admin.updateUserById(existing.id, {
         password: acc.password,
-        app_metadata: { role: acc.role },
+        app_metadata: { role: acc.role, org_id: orgId },
         user_metadata: { display_name: acc.name },
       });
-      await sb.from("profiles").upsert({ id: existing.id, role: acc.role, display_name: acc.name });
+      await sb.from("profiles").upsert({ id: existing.id, role: acc.role, display_name: acc.name, org_id: orgId });
       ids[acc.role] = existing.id;
     } else {
       const { data, error } = await sb.auth.admin.createUser({
         email: acc.email,
         password: acc.password,
         email_confirm: true,
-        app_metadata: { role: acc.role },
+        app_metadata: { role: acc.role, org_id: orgId },
         user_metadata: { display_name: acc.name },
       });
       if (error || !data.user) throw new Error(`create demo ${acc.email}: ${error?.message ?? "unknown"}`);
-      await sb.from("profiles").upsert({ id: data.user.id, role: acc.role, display_name: acc.name });
+      await sb.from("profiles").upsert({ id: data.user.id, role: acc.role, display_name: acc.name, org_id: orgId });
       ids[acc.role] = data.user.id;
     }
   }
@@ -368,7 +368,15 @@ async function ensureDemoAccounts(sb: SupabaseClient): Promise<Record<string, st
 export async function seedDatabase(): Promise<Record<string, number>> {
   const sb = supabaseAdmin();
 
-  // 1. Wipe (children first; eval_runs + kb have no inbound FKs).
+  // Resolve the Orbit (demo) org — created by the tenancy migration. All demo
+  // data lives in this org, and the wipe below is scoped to it so real signups
+  // and the SupportLoop dogfood org are never touched by a reset.
+  const { data: orgRow, error: orgErr } = await sb.from("organizations").select("id").eq("slug", "orbit").maybeSingle();
+  if (orgErr) throw new Error(`seed: ${orgErr.message}`);
+  if (!orgRow) throw new Error("Orbit org not found — run migration 0004_tenancy.sql first.");
+  const orgId = orgRow.id as string;
+
+  // 1. Wipe (children first; eval_runs + kb have no inbound FKs). Scoped to org.
   for (const table of [
     "events",
     "ticket_messages",
@@ -379,12 +387,12 @@ export async function seedDatabase(): Promise<Record<string, number>> {
     "tickets",
     "kb_articles",
   ]) {
-    const { error } = await sb.from(table).delete().not("id", "is", null);
+    const { error } = await sb.from(table).delete().eq("org_id", orgId);
     if (error) throw new Error(`wipe ${table}: ${error.message}`);
   }
 
   // Demo accounts (idempotent — they persist across resets).
-  const demoIds = await ensureDemoAccounts(sb);
+  const demoIds = await ensureDemoAccounts(sb, orgId);
 
   // 2. KB articles + embeddings.
   const kb = kbArticles as KbSeed[];
@@ -392,6 +400,7 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   const nowIso = new Date().toISOString();
   const kbRows = kb.map((a, i) => ({
     id: randomUUID(),
+    org_id: orgId,
     title: a.title,
     body: a.body,
     category: a.category,
@@ -430,15 +439,16 @@ export async function seedDatabase(): Promise<Record<string, number>> {
     if ((t.status === "open" || t.status === "assisted") && agentId && Math.random() < 0.45) t.assignee_id = agentId;
   }
 
-  await insertAll(sb, "tickets", tickets);
-  await insertAll(sb, "ticket_messages", messages);
-  await insertAll(sb, "events", events);
+  await insertAll(sb, "tickets", tickets.map((t) => ({ ...t, org_id: orgId })));
+  await insertAll(sb, "ticket_messages", messages.map((m) => ({ ...(m as Record<string, unknown>), org_id: orgId })));
+  await insertAll(sb, "events", events.map((e) => ({ ...(e as Record<string, unknown>), org_id: orgId })));
 
   // 4. Community questions + embeddings, plus accepted answers.
   const community = communityData as CommunitySeed[];
   const cqEmbeddings = await embed(community.map((q) => `${q.title}\n\n${q.body}`), "document");
   const cqRows = community.map((q, i) => ({
     id: randomUUID(),
+    org_id: orgId,
     title: q.title,
     body: q.body,
     status: q.status,
@@ -452,6 +462,7 @@ export async function seedDatabase(): Promise<Record<string, number>> {
       q.answer
         ? {
             id: randomUUID(),
+            org_id: orgId,
             question_id: cqRows[i].id,
             body: q.answer,
             source: q.answer_source ?? "user",
@@ -464,7 +475,7 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   if (answers.length) await insertAll(sb, "community_answers", answers);
 
   // Canned responses (macros).
-  const canned = CANNED.map((c) => ({ id: randomUUID(), ...c }));
+  const canned = CANNED.map((c) => ({ id: randomUUID(), org_id: orgId, ...c }));
   await insertAll(sb, "canned_responses", canned);
 
   return {

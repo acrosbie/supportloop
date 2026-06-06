@@ -2,6 +2,7 @@ import { embed } from "@/lib/embeddings";
 import { matchKb } from "@/lib/retrieve";
 import { SIMILARITY_THRESHOLD } from "@/lib/guardrail";
 import { insertEvalRun, type EvalResultRow } from "@/lib/data";
+import { getStaffOrgId } from "@/lib/auth";
 import questions from "@/supabase/seed/eval-questions.json";
 
 export const runtime = "nodejs";
@@ -20,6 +21,8 @@ interface GoldenQ {
 // free-tier rate limit, then matched individually (fast DB RPCs).
 export async function POST() {
   const qs = questions as GoldenQ[];
+  const orgId = await getStaffOrgId();
+  if (!orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
   try {
     const embeddings = await embed(
       qs.map((q) => q.question),
@@ -27,7 +30,7 @@ export async function POST() {
     );
     const results: EvalResultRow[] = [];
     for (let i = 0; i < qs.length; i++) {
-      const matches = await matchKb(embeddings[i], 3);
+      const matches = await matchKb(embeddings[i], orgId, 3);
       const top = matches[0]?.similarity ?? 0;
       const grounded = top >= SIMILARITY_THRESHOLD;
       const pass = qs[i].expected === "answer" ? grounded : !grounded;
@@ -43,7 +46,7 @@ export async function POST() {
     const passed = results.filter((r) => r.pass).length;
     const avg = results.reduce((s, r) => s + r.similarity, 0) / (results.length || 1);
     const summary = { total: results.length, grounded: groundedCount, passed, avg_similarity: Number(avg.toFixed(3)), results };
-    await insertEvalRun(summary);
+    await insertEvalRun(orgId, summary);
     return Response.json(summary);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Eval failed";

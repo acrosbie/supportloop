@@ -3,6 +3,7 @@ import { retrieve } from "@/lib/retrieve";
 import { decideGrounding } from "@/lib/guardrail";
 import { MODEL_GENERATE, anthropic, textOf } from "@/lib/anthropic";
 import { getCommunityQuestion, createAiAnswer, flagKnowledgeGap } from "@/lib/data";
+import { resolveViewerOrgId } from "@/lib/org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,14 +19,15 @@ export async function POST(req: NextRequest) {
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const q = await getCommunityQuestion(questionId);
+  const orgId = await resolveViewerOrgId();
+  const q = await getCommunityQuestion(orgId, questionId);
   if (!q) return Response.json({ error: "Question not found" }, { status: 404 });
 
-  const matches = await retrieve(`${q.title}\n${q.body}`, 5);
+  const matches = await retrieve(`${q.title}\n${q.body}`, orgId, 5);
   const decision = decideGrounding(matches);
 
   if (!decision.grounded) {
-    const draftId = await flagKnowledgeGap(questionId);
+    const draftId = await flagKnowledgeGap(orgId, questionId);
     return Response.json({ ok: true, grounded: false, draftId, topSimilarity: Number(decision.topSimilarity.toFixed(3)) });
   }
 
@@ -44,7 +46,7 @@ ${context}`;
       messages: [{ role: "user", content: `${q.title}\n\n${q.body}` }],
     });
     const body = textOf(msg);
-    const answerId = await createAiAnswer(questionId, body);
+    const answerId = await createAiAnswer(orgId, questionId, body);
     const sources = decision.sources.map((s) => ({ id: s.id, title: s.title, similarity: Number(s.similarity.toFixed(3)) }));
     return Response.json({ ok: true, grounded: true, answerId, body, sources, topSimilarity: Number(decision.topSimilarity.toFixed(3)) });
   } catch (e) {

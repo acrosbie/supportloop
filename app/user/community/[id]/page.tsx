@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCommunityQuestion, getCommunityAnswers } from "@/lib/data";
+import { resolveViewerOrgId } from "@/lib/org";
 import CommunityThread from "@/components/customer/CommunityThread";
 
 export const dynamic = "force-dynamic";
 
 export default async function QuestionPage({ params }: { params: { id: string } }) {
-  const question = await getCommunityQuestion(params.id);
+  const orgId = await resolveViewerOrgId();
+  const question = await getCommunityQuestion(orgId, params.id);
   if (!question) notFound();
-  const answers = await getCommunityAnswers(params.id);
+  const answers = await getCommunityAnswers(orgId, params.id);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">

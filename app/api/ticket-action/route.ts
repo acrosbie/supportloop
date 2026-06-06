@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { appendAgentReply, resolveTicket } from "@/lib/data";
+import { getStaffOrgId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,15 +20,18 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "ticketId and action are required" }, { status: 400 });
   }
 
+  const orgId = await getStaffOrgId();
+  if (!orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
+
   try {
     if (action === "send") {
       if (!body?.trim()) return Response.json({ error: "Reply body is empty" }, { status: 400 });
-      await appendAgentReply(ticketId, body, !!internal);
+      await appendAgentReply(orgId, ticketId, body, !!internal);
     } else if (action === "resolve") {
-      await resolveTicket(ticketId);
+      await resolveTicket(orgId, ticketId);
     } else if (action === "send_resolve") {
-      if (body?.trim()) await appendAgentReply(ticketId, body, !!internal);
-      await resolveTicket(ticketId);
+      if (body?.trim()) await appendAgentReply(orgId, ticketId, body, !!internal);
+      await resolveTicket(orgId, ticketId);
     } else {
       return Response.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }

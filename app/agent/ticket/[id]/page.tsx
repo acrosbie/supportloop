@@ -13,13 +13,14 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export default async function TicketDetail({ params }: { params: { id: string } }) {
-  const ticket = await getTicket(params.id);
+  const me = await getAuth();
+  const orgId = me?.orgId ?? "";
+  const ticket = await getTicket(orgId, params.id);
   if (!ticket) notFound();
-  const [messages, agents, canned, me] = await Promise.all([
-    getTicketMessages(params.id),
-    getAgents(),
-    getCannedResponses(),
-    getAuth(),
+  const [messages, agents, canned] = await Promise.all([
+    getTicketMessages(orgId, params.id),
+    getAgents(orgId),
+    getCannedResponses(orgId),
   ]);
   const resolved = ticket.status === "resolved" || ticket.status === "deflected";
   const requester = ticket.requester_email || "anonymous";

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createTicketFromChat } from "@/lib/data";
 import { getAuth } from "@/lib/auth";
+import { resolveViewerOrgId } from "@/lib/org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +21,8 @@ export async function POST(req: NextRequest) {
   }
   try {
     const auth = await getAuth();
-    const ticketId = await createTicketFromChat(message, subject, auth?.id ?? null, auth?.email ?? null);
+    const orgId = await resolveViewerOrgId();
+    const ticketId = await createTicketFromChat(orgId, message, subject, auth?.id ?? null, auth?.email ?? null);
     return Response.json({ ok: true, ticketId });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to create ticket";

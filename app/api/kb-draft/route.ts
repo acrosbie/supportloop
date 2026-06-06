@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { MODEL_GENERATE, anthropic, parseJson, textOf } from "@/lib/anthropic";
 import { getTicket, getTicketMessages, createDraftFromTicket, type DraftInput } from "@/lib/data";
+import { getStaffOrgId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,9 +16,11 @@ export async function POST(req: NextRequest) {
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const ticket = await getTicket(ticketId);
+  const orgId = await getStaffOrgId();
+  if (!orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const ticket = await getTicket(orgId, ticketId);
   if (!ticket) return Response.json({ error: "Ticket not found" }, { status: 404 });
-  const messages = await getTicketMessages(ticketId);
+  const messages = await getTicketMessages(orgId, ticketId);
   const thread = messages.map((m) => `${m.role.toUpperCase()}: ${m.body}`).join("\n\n");
 
   const system = `You write knowledge base articles for Orbit's help center from resolved support tickets.
@@ -39,7 +42,7 @@ Write generically for all customers (no names or ticket-specific details). If th
     if (!draft.title || !draft.body) throw new Error("Draft missing title or body");
     if (!Array.isArray(draft.tags)) draft.tags = [];
     if (!draft.category) draft.category = "General";
-    const id = await createDraftFromTicket(ticketId, draft);
+    const id = await createDraftFromTicket(orgId, ticketId, draft);
     return Response.json({ ok: true, id, draft });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Draft failed";

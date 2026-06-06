@@ -19,11 +19,12 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
   if (!action || !id) return Response.json({ error: "action and id required" }, { status: 400 });
+  if (!auth.orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
   try {
-    if (action === "update") await updateArticle(id, fields ?? {});
-    else if (action === "publish") await publishArticle(id);
-    else if (action === "unpublish") await unpublishArticle(id);
-    else if (action === "delete") await deleteArticle(id);
+    if (action === "update") await updateArticle(auth.orgId, id, fields ?? {});
+    else if (action === "publish") await publishArticle(auth.orgId, id);
+    else if (action === "unpublish") await unpublishArticle(auth.orgId, id);
+    else if (action === "delete") await deleteArticle(auth.orgId, id);
     else return Response.json({ error: `Unknown action: ${action}` }, { status: 400 });
     return Response.json({ ok: true });
   } catch (e) {

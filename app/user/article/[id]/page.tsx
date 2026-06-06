@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { getArticle } from "@/lib/data";
+import { resolveViewerOrgId } from "@/lib/org";
 
 export const dynamic = "force-dynamic";
 
 export default async function ArticlePage({ params }: { params: { id: string } }) {
-  const article = await getArticle(params.id);
+  const orgId = await resolveViewerOrgId();
+  const article = await getArticle(orgId, params.id);
   if (!article || article.status !== "published") notFound();
 
   const paragraphs = article.body.split("\n\n");

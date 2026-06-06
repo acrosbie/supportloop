@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function MyTickets() {
   const auth = await getAuth();
   if (!auth) redirect("/login?next=/user/tickets");
-  const tickets = await getMyTickets(auth.id);
+  const tickets = await getMyTickets(auth.orgId ?? "", auth.id);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">

@@ -3,6 +3,7 @@ import { retrieve } from "@/lib/retrieve";
 import { decideGrounding } from "@/lib/guardrail";
 import { MODEL_GENERATE, streamMessageText } from "@/lib/anthropic";
 import { logEvent } from "@/lib/data";
+import { resolveViewerOrgId } from "@/lib/org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,9 +24,10 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Missing "message" string' }, { status: 400 });
   }
 
+  const orgId = await resolveViewerOrgId();
   let matches;
   try {
-    matches = await retrieve(message, 5);
+    matches = await retrieve(message, orgId, 5);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Retrieval failed";
     return Response.json({ error: msg }, { status: 500 });
@@ -59,7 +61,7 @@ ${context}`;
 
   // A grounded answer is a deflection (resolved without an agent).
   if (decision.grounded) {
-    await logEvent("deflection", null, { query: message.slice(0, 200), top: sources[0]?.title ?? null });
+    await logEvent(orgId, "deflection", null, { query: message.slice(0, 200), top: sources[0]?.title ?? null });
   }
 
   const stream = streamMessageText({

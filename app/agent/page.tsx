@@ -29,13 +29,14 @@ export default async function AgentInbox({
 }) {
   const me = await getAuth();
   const meId = me?.id ?? "";
+  const orgId = me?.orgId ?? "";
   const view = searchParams.view || "my-open";
   const q = searchParams.q || "";
 
   const [tickets, counts, agents] = await Promise.all([
-    getQueue({ view, q, priority: searchParams.priority }, meId),
-    getQueueCounts(meId),
-    getAgents(),
+    getQueue(orgId, { view, q, priority: searchParams.priority }, meId),
+    getQueueCounts(orgId, meId),
+    getAgents(orgId),
   ]);
   const agentName = new Map(agents.map((a) => [a.id, a.display_name || "Agent"]));
 

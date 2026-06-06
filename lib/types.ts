@@ -103,6 +103,15 @@ export interface EvalRun {
   created_at: string;
 }
 
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  plan: string;
+  settings: Record<string, unknown>;
+  created_at: string;
+}
+
 // Persona switcher (top bar) — orients a visitor across surfaces. Cosmetic in the demo.
 export type Persona = "customer" | "agent" | "ops";
 

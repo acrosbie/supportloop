@@ -3,6 +3,7 @@ import { retrieve } from "@/lib/retrieve";
 import { decideGrounding } from "@/lib/guardrail";
 import { MODEL_GENERATE, streamMessageText } from "@/lib/anthropic";
 import { getTicket } from "@/lib/data";
+import { getStaffOrgId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,10 +19,12 @@ export async function POST(req: NextRequest) {
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const ticket = await getTicket(ticketId);
+  const orgId = await getStaffOrgId();
+  if (!orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const ticket = await getTicket(orgId, ticketId);
   if (!ticket) return Response.json({ error: "Ticket not found" }, { status: 404 });
 
-  const matches = await retrieve(`${ticket.subject}\n${ticket.body}`, 5);
+  const matches = await retrieve(`${ticket.subject}\n${ticket.body}`, orgId, 5);
   const decision = decideGrounding(matches);
   const sources = decision.sources.map((s) => ({
     id: s.id,
