@@ -32,7 +32,7 @@ export default function SignupPage() {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message);
       toast.success("Workspace created");
-      router.push("/agent");
+      router.push("/onboarding");
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign up failed");
