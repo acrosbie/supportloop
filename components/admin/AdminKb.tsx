@@ -19,6 +19,10 @@ export default function AdminKb({ articles }: { articles: Article[] }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState({ title: "", body: "", category: "" });
   const [busy, setBusy] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [md, setMd] = useState("");
+  const [cat, setCat] = useState("");
+  const [importBusy, setImportBusy] = useState(false);
 
   async function action(id: string, act: string, fields?: Record<string, unknown>) {
     setBusy(id + act);
@@ -40,8 +44,67 @@ export default function AdminKb({ articles }: { articles: Article[] }) {
     }
   }
 
+  async function importKb() {
+    if (!md.trim()) return;
+    setImportBusy(true);
+    try {
+      const r = await fetch("/api/admin/kb-import", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ markdown: md, category: cat }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || "Import failed");
+      toast.success(`Imported ${j.count} article${j.count === 1 ? "" : "s"}`);
+      setMd("");
+      setCat("");
+      setShowImport(false);
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Import failed");
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <div className="text-sm font-medium">Import knowledge</div>
+            <div className="text-xs text-muted">Paste Markdown — use “# Title” headings to import several articles at once.</div>
+          </div>
+          <Button variant={showImport ? "ghost" : "outline"} size="sm" onClick={() => setShowImport((s) => !s)}>
+            {showImport ? "Close" : "Import"}
+          </Button>
+        </div>
+        {showImport && (
+          <div className="mt-3 space-y-2">
+            <textarea
+              value={md}
+              onChange={(e) => setMd(e.target.value)}
+              rows={8}
+              placeholder={"# How do I reset my password?\n\nGo to Settings → Security and choose Reset…\n\n# Where are my invoices?\n\n…"}
+              className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 font-mono text-xs outline-none focus:border-accent"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={cat}
+                onChange={(e) => setCat(e.target.value)}
+                placeholder="Category (optional)"
+                className="flex-1 rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none focus:border-accent"
+              />
+              <Button size="sm" onClick={importKb} disabled={importBusy || !md.trim()}>
+                {importBusy ? "Importing…" : "Import & publish"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted">Imported articles are embedded and published immediately, so the assistant can use them right away.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
       {articles.map((a) => (
         <div key={a.id} className="rounded-xl border border-border bg-surface p-4">
           {editing === a.id ? (
@@ -115,6 +178,7 @@ export default function AdminKb({ articles }: { articles: Article[] }) {
           )}
         </div>
       ))}
+      </div>
     </div>
   );
 }

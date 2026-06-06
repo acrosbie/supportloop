@@ -601,3 +601,32 @@ export async function deleteArticle(orgId: string, id: string): Promise<void> {
   const { error } = await supabaseAdmin().from("kb_articles").delete().eq("id", id).eq("org_id", orgId);
   if (error) throw new Error(`deleteArticle: ${error.message}`);
 }
+
+/** Bring-your-own-knowledge: embed + publish imported articles into the org KB. */
+export async function importArticles(
+  orgId: string,
+  articles: { title: string; body: string; category?: string; tags?: string[] }[]
+): Promise<number> {
+  const clean = articles.filter((a) => a.title.trim() && a.body.trim());
+  if (!clean.length) return 0;
+  const embeddings = await embed(
+    clean.map((a) => `${a.title}\n\n${a.body}`),
+    "document"
+  );
+  const nowIso = new Date().toISOString();
+  const rows = clean.map((a, i) => ({
+    id: randomUUID(),
+    org_id: orgId,
+    title: a.title.trim(),
+    body: a.body.trim(),
+    category: a.category?.trim() || "Imported",
+    tags: a.tags ?? [],
+    status: "published",
+    source: "import",
+    embedding: toVector(embeddings[i]),
+    published_at: nowIso,
+  }));
+  const { error } = await supabaseAdmin().from("kb_articles").insert(rows);
+  if (error) throw new Error(`importArticles: ${error.message}`);
+  return rows.length;
+}
