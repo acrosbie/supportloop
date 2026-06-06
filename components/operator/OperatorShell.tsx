@@ -156,11 +156,14 @@ export default function OperatorShell({
               </SheetContent>
             </Sheet>
 
-            <div className="hidden w-72 items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-sm text-muted sm:flex">
+            <button
+              onClick={() => window.dispatchEvent(new Event("open-command"))}
+              className="hidden w-72 items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent sm:flex"
+            >
               <Search className="h-4 w-4" />
-              <span className="flex-1 truncate">Search…</span>
+              <span className="flex-1 truncate text-left">Search…</span>
               <kbd className="rounded border border-border bg-surface px-1.5 font-mono text-[10px] text-muted">⌘K</kbd>
-            </div>
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
