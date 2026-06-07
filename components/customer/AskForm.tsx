@@ -41,7 +41,7 @@ export default function AskForm() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="What's your question?"
-          className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+          className="field"
         />
       </div>
       <div>
@@ -52,7 +52,7 @@ export default function AskForm() {
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder="Add any context that would help others answer…"
-          className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+          className="field"
         />
       </div>
       <Button type="submit" disabled={busy}>

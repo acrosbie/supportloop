@@ -85,7 +85,7 @@ export default function OnboardingWizard({
               onChange={(e) => setMd(e.target.value)}
               rows={5}
               placeholder={"# How do I reset my password?\n\nGo to Settings → Security…\n\n# Where are my invoices?\n\n…"}
-              className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 font-mono text-xs outline-none focus:border-accent"
+              className="field font-mono text-xs"
             />
             <div className="mt-2 flex items-center gap-3">
               <Button size="sm" onClick={importKb} disabled={importBusy || !md.trim()}>

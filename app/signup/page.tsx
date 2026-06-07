@@ -59,13 +59,13 @@ export default function SignupPage() {
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             placeholder="Company or workspace name"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+            className="field"
           />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Your name"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+            className="field"
           />
           <input
             type="email"
@@ -73,7 +73,7 @@ export default function SignupPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@company.com"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+            className="field"
           />
           <input
             type="password"
@@ -82,7 +82,7 @@ export default function SignupPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password (8+ characters)"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+            className="field"
           />
           <Button type="submit" className="w-full" disabled={busy}>
             {busy ? "Creating workspace…" : "Create workspace"}

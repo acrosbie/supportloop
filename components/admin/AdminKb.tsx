@@ -86,14 +86,14 @@ export default function AdminKb({ articles }: { articles: Article[] }) {
               onChange={(e) => setMd(e.target.value)}
               rows={8}
               placeholder={"# How do I reset my password?\n\nGo to Settings → Security and choose Reset…\n\n# Where are my invoices?\n\n…"}
-              className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 font-mono text-xs outline-none focus:border-accent"
+              className="field font-mono text-xs"
             />
             <div className="flex flex-wrap items-center gap-2">
               <input
                 value={cat}
                 onChange={(e) => setCat(e.target.value)}
                 placeholder="Category (optional)"
-                className="flex-1 rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none focus:border-accent"
+                className="field flex-1"
               />
               <Button size="sm" onClick={importKb} disabled={importBusy || !md.trim()}>
                 {importBusy ? "Importing…" : "Import & publish"}
@@ -112,18 +112,18 @@ export default function AdminKb({ articles }: { articles: Article[] }) {
               <input
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none focus:border-accent"
+                className="field"
               />
               <textarea
                 value={form.body}
                 onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
                 rows={5}
-                className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none focus:border-accent"
+                className="field"
               />
               <input
                 value={form.category}
                 onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none focus:border-accent"
+                className="field"
               />
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => action(a.id, "update", form)} disabled={busy !== null}>

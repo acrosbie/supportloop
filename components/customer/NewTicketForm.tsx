@@ -73,7 +73,7 @@ export default function NewTicketForm({ loggedIn, defaultEmail }: { loggedIn: bo
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+            className="field"
           />
         </div>
       )}
@@ -84,7 +84,7 @@ export default function NewTicketForm({ loggedIn, defaultEmail }: { loggedIn: bo
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="Brief summary of your issue"
-          className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+          className="field"
         />
       </div>
       <div>
@@ -95,7 +95,7 @@ export default function NewTicketForm({ loggedIn, defaultEmail }: { loggedIn: bo
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Describe what's happening, and any steps to reproduce…"
-          className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+          className="field"
         />
       </div>
       <Button type="submit" disabled={busy}>
