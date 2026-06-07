@@ -4,7 +4,8 @@
 // — that is the tenant-isolation boundary, since the service role bypasses RLS.
 import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
-import { embed, toVector } from "./embeddings";
+import { embed, embedOne, toVector } from "./embeddings";
+import { matchTickets, type TicketMatch } from "./retrieve";
 import type {
   KbArticle,
   Ticket,
@@ -709,4 +710,37 @@ export async function getInsightsData(orgId: string): Promise<InsightsData> {
     .slice(0, 6);
 
   return { themes, thisWeekTotal, lastWeekTotal, resolvedThisWeek };
+}
+
+// ---------------------------------------------------------------------------
+// Agent copilot — semantically similar past tickets (R3)
+// ---------------------------------------------------------------------------
+/**
+ * Resolved tickets similar to this one. Tries semantic search (requires the
+ * 0005 migration + ticket embeddings); falls back to same-intent resolved
+ * tickets so the feature works even before the migration + reseed.
+ */
+export async function getSimilarTickets(orgId: string, ticketId: string): Promise<TicketMatch[]> {
+  const t = await getTicket(orgId, ticketId);
+  if (!t) return [];
+  try {
+    const emb = await embedOne(`${t.subject}\n\n${t.body}`, "query");
+    const hits = await matchTickets(emb, orgId, ticketId, 3, 0.5);
+    if (hits.length) return hits;
+  } catch {
+    /* embeddings / match_tickets not available yet — fall through */
+  }
+  if (!t.intent) return [];
+  const { data } = await supabaseAdmin()
+    .from("tickets")
+    .select("id,subject,body,intent,status")
+    .eq("org_id", orgId)
+    .neq("id", ticketId)
+    .in("status", ["resolved", "deflected"])
+    .eq("intent", t.intent)
+    .order("resolved_at", { ascending: false })
+    .limit(3);
+  return ((data ?? []) as { id: string; subject: string; body: string; intent: string | null; status: string }[]).map(
+    (r) => ({ ...r, similarity: 0 })
+  );
 }

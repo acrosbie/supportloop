@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTicket, getTicketMessages, getAgents, getCannedResponses } from "@/lib/data";
+import { getTicket, getTicketMessages, getAgents, getCannedResponses, getSimilarTickets } from "@/lib/data";
 import { getAuth, NO_ORG } from "@/lib/auth";
 import TriagePanel from "@/components/agent/TriagePanel";
 import TicketProperties from "@/components/agent/TicketProperties";
 import ReplyComposer from "@/components/agent/ReplyComposer";
+import Copilot from "@/components/agent/Copilot";
 import { Badge, PriorityPill, StatusPill } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { ChannelIcon, channelLabel } from "@/components/ui/channel-icon";
@@ -17,10 +18,11 @@ export default async function TicketDetail({ params }: { params: { id: string } 
   const orgId = me?.orgId ?? NO_ORG;
   const ticket = await getTicket(orgId, params.id);
   if (!ticket) notFound();
-  const [messages, agents, canned] = await Promise.all([
+  const [messages, agents, canned, similar] = await Promise.all([
     getTicketMessages(orgId, params.id),
     getAgents(orgId),
     getCannedResponses(orgId),
+    getSimilarTickets(orgId, params.id),
   ]);
   const resolved = ticket.status === "resolved" || ticket.status === "deflected";
   const requester = ticket.requester_email || "anonymous";
@@ -125,6 +127,10 @@ export default async function TicketDetail({ params }: { params: { id: string } 
             </div>
           </div>
 
+          <Copilot
+            ticketId={ticket.id}
+            similar={similar.map((s) => ({ id: s.id, subject: s.subject, intent: s.intent }))}
+          />
           <TriagePanel ticketId={ticket.id} />
           <TicketProperties
             ticketId={ticket.id}

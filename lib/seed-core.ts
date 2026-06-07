@@ -37,6 +37,26 @@ async function insertAll(sb: SupabaseClient, table: string, rows: unknown[]): Pr
   }
 }
 
+// Best-effort: embed resolved tickets so the agent copilot's "similar tickets"
+// is semantic. No-ops gracefully if migration 0005 hasn't been applied yet.
+async function embedResolvedTickets(sb: SupabaseClient, orgId: string, tickets: GenTicket[]): Promise<void> {
+  const resolved = tickets.filter((t) => t.status === "resolved");
+  if (!resolved.length) return;
+  try {
+    const vectors = await embed(resolved.map((t) => `${t.subject}\n\n${t.body}`), "document");
+    for (let i = 0; i < resolved.length; i++) {
+      const { error } = await sb
+        .from("tickets")
+        .update({ embedding: toVector(vectors[i]) })
+        .eq("id", resolved[i].id)
+        .eq("org_id", orgId);
+      if (error) throw error;
+    }
+  } catch {
+    /* embedding column not present yet — run migration 0005 + reseed */
+  }
+}
+
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -528,6 +548,7 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   enrichTickets(tickets, agentId);
 
   await insertAll(sb, "tickets", tickets.map((t) => ({ ...t, org_id: orgId })));
+  await embedResolvedTickets(sb, orgId, tickets);
   await insertAll(sb, "ticket_messages", messages.map((m) => ({ ...(m as Record<string, unknown>), org_id: orgId })));
   await insertAll(sb, "events", events.map((e) => ({ ...(e as Record<string, unknown>), org_id: orgId })));
 
@@ -631,6 +652,7 @@ async function seedSupportLoopOrg(sb: SupabaseClient): Promise<{ kb_articles: nu
   const { tickets, messages, events } = generateTickets(SUPPORTLOOP_TEMPLATES, 60);
   enrichTickets(tickets, agentId);
   await insertAll(sb, "tickets", tickets.map((t) => ({ ...t, org_id: orgId })));
+  await embedResolvedTickets(sb, orgId, tickets);
   await insertAll(sb, "ticket_messages", messages.map((m) => ({ ...(m as Record<string, unknown>), org_id: orgId })));
   await insertAll(sb, "events", events.map((e) => ({ ...(e as Record<string, unknown>), org_id: orgId })));
 

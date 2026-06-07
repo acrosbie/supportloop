@@ -26,3 +26,31 @@ export async function retrieve(query: string, orgId: string, k = 5, minSimilarit
   const embedding = await embedOne(query, "query");
   return matchKb(embedding, orgId, k, minSimilarity);
 }
+
+export interface TicketMatch {
+  id: string;
+  subject: string;
+  body: string;
+  intent: string | null;
+  status: string;
+  similarity: number;
+}
+
+/** Org-scoped semantic search over resolved tickets, excluding the current one. */
+export async function matchTickets(
+  embedding: number[],
+  orgId: string,
+  excludeId: string,
+  k = 3,
+  minSimilarity = 0.5
+): Promise<TicketMatch[]> {
+  const { data, error } = await supabaseAdmin().rpc("match_tickets", {
+    query_embedding: toVector(embedding),
+    p_org_id: orgId,
+    exclude_id: excludeId,
+    match_count: k,
+    min_similarity: minSimilarity,
+  });
+  if (error) throw new Error(`match_tickets failed: ${error.message}`);
+  return (data ?? []) as TicketMatch[];
+}
