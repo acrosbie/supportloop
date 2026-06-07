@@ -6,6 +6,7 @@ import TriagePanel from "@/components/agent/TriagePanel";
 import TicketProperties from "@/components/agent/TicketProperties";
 import ReplyComposer from "@/components/agent/ReplyComposer";
 import Copilot from "@/components/agent/Copilot";
+import AgentActions from "@/components/agent/AgentActions";
 import LiveChatRoom from "@/components/LiveChatRoom";
 import { Badge, PriorityPill, StatusPill } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -143,6 +144,7 @@ export default async function TicketDetail({ params }: { params: { id: string } 
             ticketId={ticket.id}
             similar={similar.map((s) => ({ id: s.id, subject: s.subject, intent: s.intent }))}
           />
+          <AgentActions ticketId={ticket.id} />
           <TriagePanel ticketId={ticket.id} />
           <TicketProperties
             ticketId={ticket.id}
