@@ -648,3 +648,65 @@ export async function importArticles(
   if (error) throw new Error(`importArticles: ${error.message}`);
   return rows.length;
 }
+
+// ---------------------------------------------------------------------------
+// Ops intelligence — emerging themes + week-over-week movement (R2)
+// ---------------------------------------------------------------------------
+export interface InsightTheme {
+  name: string;
+  thisWeek: number;
+  lastWeek: number;
+  trend: "new" | "up" | "down" | "flat";
+}
+export interface InsightsData {
+  themes: InsightTheme[];
+  thisWeekTotal: number;
+  lastWeekTotal: number;
+  resolvedThisWeek: number;
+}
+
+/** Cluster the last two weeks of tickets by intent and score the movement. */
+export async function getInsightsData(orgId: string): Promise<InsightsData> {
+  const since = new Date(Date.now() - 14 * 86400_000).toISOString();
+  const { data, error } = await supabaseAdmin()
+    .from("tickets")
+    .select("intent,status,created_at")
+    .eq("org_id", orgId)
+    .gte("created_at", since);
+  if (error) throw new Error(`getInsightsData: ${error.message}`);
+  const rows = (data ?? []) as { intent: string | null; status: string; created_at: string }[];
+
+  const weekAgo = Date.now() - 7 * 86400_000;
+  const counts = new Map<string, { thisWeek: number; lastWeek: number }>();
+  let thisWeekTotal = 0;
+  let lastWeekTotal = 0;
+  let resolvedThisWeek = 0;
+  for (const r of rows) {
+    const recent = new Date(r.created_at).getTime() >= weekAgo;
+    const name = r.intent || "Untriaged";
+    const c = counts.get(name) ?? { thisWeek: 0, lastWeek: 0 };
+    if (recent) {
+      c.thisWeek++;
+      thisWeekTotal++;
+      if (r.status === "resolved" || r.status === "deflected") resolvedThisWeek++;
+    } else {
+      c.lastWeek++;
+      lastWeekTotal++;
+    }
+    counts.set(name, c);
+  }
+
+  const themes: InsightTheme[] = [...counts.entries()]
+    .map(([name, c]) => {
+      let trend: InsightTheme["trend"] = "flat";
+      if (c.lastWeek === 0 && c.thisWeek > 0) trend = "new";
+      else if (c.thisWeek > c.lastWeek * 1.15) trend = "up";
+      else if (c.thisWeek < c.lastWeek * 0.85) trend = "down";
+      return { name, thisWeek: c.thisWeek, lastWeek: c.lastWeek, trend };
+    })
+    .filter((t) => t.thisWeek > 0 || t.lastWeek > 0)
+    .sort((a, b) => b.thisWeek - a.thisWeek)
+    .slice(0, 6);
+
+  return { themes, thisWeekTotal, lastWeekTotal, resolvedThisWeek };
+}
