@@ -744,3 +744,20 @@ export async function getSimilarTickets(orgId: string, ticketId: string): Promis
     (r) => ({ ...r, similarity: 0 })
   );
 }
+
+/** A customer rates a resolved ticket (1–5). Scoped to their own ticket. */
+export async function setTicketCsat(
+  orgId: string,
+  ticketId: string,
+  requesterId: string,
+  score: number
+): Promise<void> {
+  const s = Math.max(1, Math.min(5, Math.round(score)));
+  const { error } = await supabaseAdmin()
+    .from("tickets")
+    .update({ csat: s })
+    .eq("id", ticketId)
+    .eq("org_id", orgId)
+    .eq("requester_id", requesterId);
+  if (error) throw new Error(`setTicketCsat: ${error.message}`);
+}

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ChannelIcon, channelLabel } from "@/components/ui/channel-icon";
+import CsatRater from "@/components/customer/CsatRater";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export default async function MyTickets() {
       ) : (
         <ul className="mt-6 space-y-2">
           {tickets.map((t) => (
-            <li key={t.id} className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4">
+            <li key={t.id} className="flex items-start gap-3 rounded-xl border border-border bg-surface p-4">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-strong">
                 <ChannelIcon channel={t.channel} className="h-4 w-4" />
               </span>
@@ -46,6 +47,7 @@ export default async function MyTickets() {
                 <div className="mt-1 text-xs text-muted">
                   Opened {new Date(t.created_at).toLocaleDateString()} · {channelLabel(t.channel)}
                 </div>
+                {t.status === "resolved" && <CsatRater ticketId={t.id} initial={t.csat} />}
               </div>
               <StatusPill status={t.status} />
             </li>
