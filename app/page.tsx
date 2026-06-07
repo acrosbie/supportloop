@@ -139,6 +139,9 @@ export default function Home() {
           <p className="mt-6 text-sm text-muted">
             No credit card. Spin up a workspace and import your help center in minutes.
           </p>
+          <Link href="/try" className="mt-3 inline-block text-sm font-medium text-accent-strong hover:underline">
+            Or paste your own docs and ask it anything →
+          </Link>
         </div>
       </section>
 
