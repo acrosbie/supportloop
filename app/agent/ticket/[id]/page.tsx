@@ -6,6 +6,7 @@ import TriagePanel from "@/components/agent/TriagePanel";
 import TicketProperties from "@/components/agent/TicketProperties";
 import ReplyComposer from "@/components/agent/ReplyComposer";
 import Copilot from "@/components/agent/Copilot";
+import LiveChatRoom from "@/components/LiveChatRoom";
 import { Badge, PriorityPill, StatusPill } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { ChannelIcon, channelLabel } from "@/components/ui/channel-icon";
@@ -54,6 +55,17 @@ export default async function TicketDetail({ params }: { params: { id: string } 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Conversation + composer */}
         <div className="space-y-4 lg:col-span-2">
+          {ticket.channel === "live" && !resolved && (
+            <LiveChatRoom
+              ticketId={ticket.id}
+              role="agent"
+              initial={messages.map((m) => ({
+                role: m.role === "customer" ? ("customer" as const) : ("agent" as const),
+                body: m.body,
+                ts: new Date(m.created_at).getTime(),
+              }))}
+            />
+          )}
           <div className="rounded-xl border border-border bg-surface p-4">
             <div className="text-xs font-medium uppercase tracking-wide text-muted">Conversation</div>
             <div className="mt-3 space-y-1">

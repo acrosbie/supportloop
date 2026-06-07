@@ -761,3 +761,48 @@ export async function setTicketCsat(
     .eq("requester_id", requesterId);
   if (error) throw new Error(`setTicketCsat: ${error.message}`);
 }
+
+// ---------------------------------------------------------------------------
+// Live chat (R5)
+// ---------------------------------------------------------------------------
+/** Open a live-chat ticket (channel "live"); the realtime room keys off its id. */
+export async function createLiveTicket(
+  orgId: string,
+  requesterId?: string | null,
+  requesterEmail?: string | null
+): Promise<string> {
+  const id = randomUUID();
+  const { error } = await supabaseAdmin().from("tickets").insert({
+    id,
+    org_id: orgId,
+    subject: "Live chat",
+    body: "Customer started a live chat.",
+    channel: "live",
+    status: "open",
+    urgency: "medium",
+    queue: "Unassigned",
+    was_deflected: false,
+    was_ai_assisted: false,
+    requester_id: requesterId ?? null,
+    requester_email: requesterEmail ?? null,
+  });
+  if (error) throw new Error(`createLiveTicket: ${error.message}`);
+  await logEvent(orgId, "escalation", id, { source: "live" });
+  return id;
+}
+
+/** Persist a live-chat message (history alongside the realtime broadcast). */
+export async function appendLiveMessage(
+  orgId: string,
+  ticketId: string,
+  role: "customer" | "agent",
+  body: string
+): Promise<void> {
+  const { error } = await supabaseAdmin()
+    .from("ticket_messages")
+    .insert({ org_id: orgId, ticket_id: ticketId, role, body });
+  if (error) throw new Error(`appendLiveMessage: ${error.message}`);
+  if (role === "agent") {
+    await supabaseAdmin().from("tickets").update({ status: "assisted" }).eq("id", ticketId).eq("org_id", orgId);
+  }
+}

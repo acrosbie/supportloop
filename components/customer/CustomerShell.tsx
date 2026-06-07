@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/user", label: "Help Center", exact: true },
   { href: "/user/community", label: "Community" },
+  { href: "/user/live", label: "Live chat" },
 ];
 
 function Logo() {
