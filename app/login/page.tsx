@@ -69,7 +69,7 @@ function LoginInner() {
             ))}
           </ul>
         </div>
-        <div className="text-xs text-accent-fg/70">A demonstration over a fictional product, Orbit.</div>
+        <div className="text-xs text-accent-fg/70">The closed-loop customer support platform.</div>
       </div>
 
       {/* Form */}

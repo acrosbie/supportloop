@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { getArticle } from "@/lib/data";
+import { getArticle, getPublishedArticles } from "@/lib/data";
 import { resolveViewerOrgId } from "@/lib/org";
+import { timeAgo } from "@/lib/utils";
+import ArticleFeedback from "@/components/customer/ArticleFeedback";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +13,10 @@ export default async function ArticlePage({ params }: { params: { id: string } }
   const article = await getArticle(orgId, params.id);
   if (!article || article.status !== "published") notFound();
 
+  const all = await getPublishedArticles(orgId);
+  const related = all.filter((a) => a.category === article.category && a.id !== article.id).slice(0, 4);
   const paragraphs = article.body.split("\n\n");
+  const updated = article.published_at ?? article.created_at;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -23,8 +28,9 @@ export default async function ArticlePage({ params }: { params: { id: string } }
         <span className="text-foreground/70">{article.category}</span>
       </div>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight">{article.title}</h1>
+      <div className="mt-2 text-sm text-muted">Updated {timeAgo(updated)}</div>
 
-      <article className="mt-6 space-y-4 text-[15px] leading-relaxed text-foreground/90">
+      <article className="mt-8 space-y-4 text-[15px] leading-relaxed text-foreground/90">
         {paragraphs.map((p, i) => (
           <p key={i}>{p}</p>
         ))}
@@ -37,6 +43,27 @@ export default async function ArticlePage({ params }: { params: { id: string } }
               {t}
             </span>
           ))}
+        </div>
+      )}
+
+      <ArticleFeedback />
+
+      {related.length > 0 && (
+        <div className="mt-10">
+          <div className="text-xs font-medium uppercase tracking-widest text-muted">Related articles</div>
+          <ul className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border bg-white">
+            {related.map((a) => (
+              <li key={a.id}>
+                <Link
+                  href={`/user/article/${a.id}`}
+                  className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm hover:bg-surface-2"
+                >
+                  <span className="font-medium">{a.title}</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

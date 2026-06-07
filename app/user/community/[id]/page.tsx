@@ -2,6 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCommunityQuestion, getCommunityAnswers } from "@/lib/data";
 import { resolveViewerOrgId } from "@/lib/org";
+import { personaName } from "@/lib/people";
+import { timeAgo } from "@/lib/utils";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import CommunityThread from "@/components/customer/CommunityThread";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +15,7 @@ export default async function QuestionPage({ params }: { params: { id: string } 
   const question = await getCommunityQuestion(orgId, params.id);
   if (!question) notFound();
   const answers = await getCommunityAnswers(orgId, params.id);
+  const author = personaName(question.id);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -19,14 +24,20 @@ export default async function QuestionPage({ params }: { params: { id: string } 
       </Link>
 
       <div className="mt-4 flex items-start justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{question.title}</h1>
-        {question.has_kb_gap && (
-          <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
-            Knowledge gap
-          </span>
-        )}
+        <h1 className="text-2xl font-semibold tracking-tight">{question.title}</h1>
+        {question.status === "answered" && <Badge tone="success">Solved</Badge>}
       </div>
-      <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90">{question.body}</p>
+
+      <div className="mt-5 flex gap-3">
+        <Avatar name={author} className="h-9 w-9 shrink-0 text-xs" />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm">
+            <span className="font-medium">{author}</span>
+            <span className="text-muted"> · {timeAgo(question.created_at)}</span>
+          </div>
+          <p className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90">{question.body}</p>
+        </div>
+      </div>
 
       <CommunityThread
         questionId={question.id}

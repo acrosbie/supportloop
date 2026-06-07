@@ -2,21 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LifeBuoy, Users, Ticket, Send } from "lucide-react";
-import RoleSwitcher from "@/components/RoleSwitcher";
-import ChatWidget from "@/components/customer/ChatWidget";
 import LogoutButton from "@/components/auth/LogoutButton";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import ChatWidget from "@/components/customer/ChatWidget";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/user", label: "Help Center", icon: LifeBuoy, exact: true },
-  { href: "/user/community", label: "Community", icon: Users },
-  { href: "/user/new", label: "Submit a request", icon: Send },
+  { href: "/user", label: "Help Center", exact: true },
+  { href: "/user/community", label: "Community" },
 ];
 
-/** Friendly, refined "Orbit Help Center" chrome — light, the customer face. */
+/** The Orbit Help Center chrome — a clean, real-feeling customer help center. */
 export default function CustomerShell({
   children,
   auth,
@@ -25,65 +22,63 @@ export default function CustomerShell({
   auth: { name: string } | null;
 }) {
   const pathname = usePathname();
-  return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
-          <Link href="/user" className="flex items-center gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-fg">
-              O
-            </span>
-            <span className="leading-tight">
-              <span className="block font-semibold">Orbit</span>
-              <span className="block text-xs text-muted">Help Center</span>
-            </span>
-          </Link>
+  const year = new Date().getFullYear();
 
-          <nav className="hidden items-center gap-1 sm:flex">
-            {NAV.map((item) => {
-              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-              const Icon = item.icon;
-              return (
+  return (
+    <div className="flex min-h-screen flex-col bg-white">
+      {/* Header */}
+      <header className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
+          <div className="flex items-center gap-8">
+            <Link href="/user" className="flex items-center gap-2.5">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-fg">
+                O
+              </span>
+              <span className="text-[15px] font-semibold tracking-tight">Orbit</span>
+            </Link>
+            <nav className="hidden items-center gap-1 md:flex">
+              {NAV.map((item) => {
+                const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "rounded-lg px-3 py-1.5 text-sm transition-colors",
+                      active ? "font-medium text-foreground" : "text-muted hover:text-foreground"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+              {auth && (
                 <Link
-                  key={item.href}
-                  href={item.href}
+                  href="/user/tickets"
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors",
-                    active ? "bg-accent-soft font-medium text-accent-strong" : "text-foreground/70 hover:bg-surface-2"
+                    "rounded-lg px-3 py-1.5 text-sm transition-colors",
+                    pathname.startsWith("/user/tickets") ? "font-medium text-foreground" : "text-muted hover:text-foreground"
                   )}
                 >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
+                  My requests
                 </Link>
-              );
-            })}
-            {auth && (
-              <Link
-                href="/user/tickets"
-                className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors",
-                  pathname.startsWith("/user/tickets")
-                    ? "bg-accent-soft font-medium text-accent-strong"
-                    : "text-foreground/70 hover:bg-surface-2"
-                )}
-              >
-                <Ticket className="h-4 w-4" />
-                My tickets
-              </Link>
-            )}
-          </nav>
+              )}
+            </nav>
+          </div>
 
-          <div className="flex items-center gap-2">
-            <RoleSwitcher />
+          <div className="flex items-center gap-2.5">
+            <Button asChild size="sm" className="hidden sm:inline-flex">
+              <Link href="/user/new">Submit a request</Link>
+            </Button>
             {auth ? (
-              <div className="flex items-center gap-1.5 border-l border-border pl-2">
+              <div className="flex items-center gap-2 border-l border-border pl-2.5">
                 <Avatar name={auth.name} className="h-7 w-7 text-[10px]" />
                 <LogoutButton />
               </div>
             ) : (
-              <Button asChild variant="outline" size="sm">
-                <Link href="/login">Sign in</Link>
-              </Button>
+              <Link href="/login" className="text-sm font-medium text-foreground/80 hover:text-foreground">
+                Sign in
+              </Link>
             )}
           </div>
         </div>
@@ -94,13 +89,53 @@ export default function CustomerShell({
       {/* The assistant follows the customer across every help-center page. */}
       <ChatWidget />
 
-      <footer className="border-t border-border bg-surface-2">
-        <div className="mx-auto max-w-5xl px-6 py-5 text-xs text-muted">
-          Orbit is a fictional product used to demonstrate{" "}
-          <Link href="/" className="text-accent-strong hover:underline">
-            SupportLoop
-          </Link>
-          . No real customers, no real data.
+      {/* Footer */}
+      <footer className="mt-20 border-t border-border bg-surface">
+        <div className="mx-auto max-w-6xl px-6 py-12">
+          <div className="flex flex-col justify-between gap-8 sm:flex-row">
+            <div className="max-w-xs">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-xs font-bold text-accent-fg">
+                  O
+                </span>
+                <span className="font-semibold">Orbit</span>
+              </div>
+              <p className="mt-3 text-sm text-muted">Meetings, recordings, and collaboration for modern teams.</p>
+            </div>
+            <div className="flex gap-14 text-sm">
+              <div>
+                <div className="font-medium text-foreground">Support</div>
+                <ul className="mt-3 space-y-2.5 text-muted">
+                  <li>
+                    <Link href="/user" className="hover:text-foreground">Help Center</Link>
+                  </li>
+                  <li>
+                    <Link href="/user/community" className="hover:text-foreground">Community</Link>
+                  </li>
+                  <li>
+                    <Link href="/user/new" className="hover:text-foreground">Submit a request</Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <div className="font-medium text-foreground">Account</div>
+                <ul className="mt-3 space-y-2.5 text-muted">
+                  <li>
+                    <Link href="/user/tickets" className="hover:text-foreground">My requests</Link>
+                  </li>
+                  <li>
+                    <Link href="/login" className="hover:text-foreground">Sign in</Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div className="mt-12 flex flex-col items-start justify-between gap-2 border-t border-border pt-6 text-xs text-muted sm:flex-row sm:items-center">
+            <span>© {year} Orbit, Inc.</span>
+            <Link href="/" className="hover:text-foreground">
+              Powered by SupportLoop
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

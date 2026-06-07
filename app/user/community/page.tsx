@@ -1,82 +1,93 @@
 import Link from "next/link";
-import { MessageSquare, MessageCircle, CheckCircle2 } from "lucide-react";
+import { MessageCircle, CheckCircle2 } from "lucide-react";
 import { getCommunityQuestions } from "@/lib/data";
 import { resolveViewerOrgId } from "@/lib/org";
+import { personaName } from "@/lib/people";
+import { timeAgo } from "@/lib/utils";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
-
-function StatePill({ hasGap, status }: { hasGap: boolean; status: string }) {
-  if (hasGap) return <Badge tone="warning">Knowledge gap</Badge>;
-  if (status === "answered") return <Badge tone="success">Answered</Badge>;
-  return <Badge tone="neutral">Open</Badge>;
-}
 
 export default async function Community() {
   const orgId = await resolveViewerOrgId();
   const questions = await getCommunityQuestions(orgId);
-  const gaps = questions.filter((q) => q.has_kb_gap);
+  const solved = questions.filter((q) => q.status === "answered").length;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Community</h1>
-        <p className="mt-1 text-muted">Ask the community — and let AI suggest answers from the help center.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Community</h1>
+          <p className="mt-1 text-muted">Get help from other Orbit users and our support team.</p>
+        </div>
+        <Button asChild>
+          <Link href="/user/new">Ask a question</Link>
+        </Button>
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <div className="space-y-2 lg:col-span-2">
-          {questions.map((q) => (
-            <Link
-              key={q.id}
-              href={`/user/community/${q.id}`}
-              className="flex gap-3 rounded-xl border border-border bg-white p-4 transition-colors hover:border-accent"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-strong">
-                <MessageSquare className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="text-sm font-medium">{q.title}</div>
-                  <StatePill hasGap={q.has_kb_gap} status={q.status} />
-                </div>
-                <p className="mt-1 line-clamp-1 text-xs text-muted">{q.body}</p>
-                <div className="mt-2 flex items-center gap-3 text-xs text-muted">
-                  <span className="flex items-center gap-1">
-                    <MessageCircle className="h-3 w-3" />
-                    {q.answerCount} answer{q.answerCount === 1 ? "" : "s"}
-                  </span>
-                  {q.status === "answered" && (
-                    <span className="flex items-center gap-1 text-success">
-                      <CheckCircle2 className="h-3 w-3" />
-                      resolved
-                    </span>
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <div>
-          <div className="rounded-xl border border-warning/30 bg-warning-soft p-5">
-            <div className="font-medium text-warning">Knowledge gaps</div>
-            <p className="mt-1 text-sm text-warning/90">
-              Questions the KB can't answer well. Each becomes a draft article in the Agent → Knowledge Loop.
-            </p>
-            <ul className="mt-3 space-y-2">
-              {gaps.map((g) => (
-                <li key={g.id} className="text-sm text-warning">
-                  •{" "}
-                  <Link href={`/user/community/${g.id}`} className="hover:underline">
-                    {g.title}
+        <div className="lg:col-span-2">
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-white">
+            {questions.map((q) => {
+              const author = personaName(q.id);
+              return (
+                <li key={q.id}>
+                  <Link href={`/user/community/${q.id}`} className="flex gap-3 px-5 py-4 transition-colors hover:bg-surface-2">
+                    <Avatar name={author} className="h-9 w-9 shrink-0 text-xs" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-sm font-medium">{q.title}</div>
+                        {q.status === "answered" ? <Badge tone="success">Solved</Badge> : <Badge tone="neutral">Open</Badge>}
+                      </div>
+                      <p className="mt-1 line-clamp-1 text-sm text-muted">{q.body}</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-muted">
+                        <span className="font-medium text-foreground/70">{author}</span>
+                        <span>·</span>
+                        <span>{timeAgo(q.created_at)}</span>
+                        <span>·</span>
+                        <span className="flex items-center gap-1">
+                          <MessageCircle className="h-3 w-3" />
+                          {q.answerCount} {q.answerCount === 1 ? "reply" : "replies"}
+                        </span>
+                      </div>
+                    </div>
                   </Link>
                 </li>
-              ))}
-              {gaps.length === 0 && <li className="text-sm text-warning/90">No gaps flagged yet.</li>}
-            </ul>
-          </div>
+              );
+            })}
+            {questions.length === 0 && (
+              <li className="px-5 py-10 text-center text-sm text-muted">No questions yet — be the first to ask.</li>
+            )}
+          </ul>
         </div>
+
+        <aside className="space-y-4">
+          <div className="rounded-xl border border-border bg-surface p-5">
+            <div className="font-medium">About the community</div>
+            <p className="mt-1.5 text-sm text-muted">
+              Ask questions, share tips, and get answers from other Orbit users and our team. Our assistant also suggests
+              answers from the help center.
+            </p>
+            <Button asChild className="mt-4 w-full">
+              <Link href="/user/new">Ask a question</Link>
+            </Button>
+          </div>
+          <div className="rounded-xl border border-border bg-surface p-5">
+            <div className="text-xs font-medium uppercase tracking-widest text-muted">This week</div>
+            <div className="mt-3 flex items-center justify-between text-sm">
+              <span className="text-muted">Questions</span>
+              <span className="font-medium">{questions.length}</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between text-sm">
+              <span className="flex items-center gap-1.5 text-muted">
+                <CheckCircle2 className="h-3.5 w-3.5 text-success" /> Solved
+              </span>
+              <span className="font-medium">{solved}</span>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

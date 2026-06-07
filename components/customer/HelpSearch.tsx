@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Search, User, Video, CreditCard, Calendar, Disc, Shield, Rocket, BookOpen, ChevronRight } from "lucide-react";
+import { Search, User, Video, CreditCard, Calendar, Disc, Shield, Rocket, BookOpen, ChevronRight, Sparkles, Settings, Users, Upload, HelpCircle, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,14 +15,27 @@ interface ArticleLite {
 
 const ICONS: Record<string, LucideIcon> = {
   Account: User,
+  "Account & Team": Users,
   "Audio & Video": Video,
   "Plans & Billing": CreditCard,
+  Billing: CreditCard,
   Meetings: Calendar,
   Recording: Disc,
   "Security & Admin": Shield,
   "Getting Started": Rocket,
+  "Knowledge Base": BookOpen,
+  "AI & Grounding": Sparkles,
+  Operations: Settings,
+  Imported: Upload,
+  General: HelpCircle,
 };
-const iconFor = (cat: string): LucideIcon => ICONS[cat] ?? BookOpen;
+const POOL: LucideIcon[] = [Wrench, HelpCircle, BookOpen, Settings, Sparkles, Shield];
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+const iconFor = (cat: string): LucideIcon => ICONS[cat] ?? POOL[hashStr(cat) % POOL.length];
 
 export default function HelpSearch({
   articles,

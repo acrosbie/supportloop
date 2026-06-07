@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Markdown } from "@/components/ui/markdown";
 import { toast } from "@/components/ui/toaster";
+import { personaName } from "@/lib/people";
 import { cn } from "@/lib/utils";
 
 interface Answer {
@@ -48,9 +49,9 @@ export default function CommunityThread({ questionId, answers }: { questionId: s
         toast.success("AI answer added");
       } else {
         setGapMsg(
-          "No confident help-center match — flagged as a knowledge gap and a draft was created in the Knowledge Loop for the team to write."
+          "We couldn't find a confident answer in the help center — our team has been notified and will follow up here."
         );
-        toast("Flagged as a knowledge gap");
+        toast("Sent to our support team");
       }
       router.refresh();
     } catch (e) {
@@ -97,7 +98,7 @@ export default function CommunityThread({ questionId, answers }: { questionId: s
       )}
       {sources.length > 0 && (
         <div className="mt-3">
-          <div className="mb-1 text-[11px] text-muted">Grounded in:</div>
+          <div className="mb-1 text-[11px] text-muted">Based on:</div>
           <div className="flex flex-wrap gap-1">
             {sources.map((s) => (
               <Link
@@ -119,11 +120,11 @@ export default function CommunityThread({ questionId, answers }: { questionId: s
             className={cn("rounded-xl border p-4", a.accepted ? "border-success/30 bg-success-soft" : "border-border bg-white")}
           >
             <div className="flex items-start gap-3">
-              <Avatar name={a.source === "ai" ? "Orbit Assistant" : `Community member ${a.id.slice(0, 4)}`} />
+              <Avatar name={a.source === "ai" ? "Orbit Assistant" : personaName(a.id)} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="font-medium text-foreground">
-                    {a.source === "ai" ? "Orbit Assistant" : "Community member"}
+                    {a.source === "ai" ? "Orbit Assistant" : personaName(a.id)}
                   </span>
                   <Badge tone={a.source === "ai" ? "accent" : "neutral"}>{a.source === "ai" ? "AI" : "Member"}</Badge>
                   {a.accepted && (
@@ -151,7 +152,7 @@ export default function CommunityThread({ questionId, answers }: { questionId: s
         ))}
         {answers.length === 0 && (
           <li className="rounded-xl border border-dashed border-border p-4 text-sm text-muted">
-            No answers yet. Click “Suggest an answer” for an AI answer grounded in the help center.
+            No answers yet. Use “Suggest an answer” to get an instant answer from the help center.
           </li>
         )}
       </ul>
