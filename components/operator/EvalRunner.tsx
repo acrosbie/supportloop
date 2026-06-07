@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Minus, FlaskConical, ShieldCheck, CheckCircle2, Gauge } from "lucide-react";
+import { Check, Minus, FlaskConical, ShieldCheck, CheckCircle2, Gauge, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ interface ResultRow {
   grounded: boolean;
   pass: boolean;
   similarity: number;
+  faithful?: boolean | null;
 }
 export interface EvalSummary {
   total: number;
@@ -22,6 +23,8 @@ export interface EvalSummary {
   passed: number;
   avg_similarity: number;
   results: ResultRow[];
+  faithfulness_rate?: number | null;
+  faithful_checked?: number;
   createdAt?: string;
 }
 
@@ -56,6 +59,13 @@ export default function EvalRunner({ initial }: { initial: EvalSummary | null })
         { label: "Grounded-rate", value: `${groundedRate}%`, sub: "answers backed by KB", icon: ShieldCheck, tone: "bg-success-soft text-success" },
         { label: "Pass-rate", value: `${passRate}%`, sub: "correct answer / escalate", icon: CheckCircle2, tone: "bg-accent-soft text-accent-strong", bar: passRate },
         { label: "Avg similarity", value: run.avg_similarity.toFixed(2), sub: "top retrieved match", icon: Gauge, tone: "bg-warning-soft text-warning" },
+        {
+          label: "Faithfulness",
+          value: run.faithfulness_rate != null ? `${Math.round(run.faithfulness_rate * 100)}%` : "—",
+          sub: `${run.faithful_checked ?? 0} answers judged`,
+          icon: Sparkles,
+          tone: "bg-accent-soft text-accent-strong",
+        },
       ]
     : [];
 
@@ -86,7 +96,7 @@ export default function EvalRunner({ initial }: { initial: EvalSummary | null })
         />
       ) : (
         <>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {cards.map((c) => {
               const Icon = c.icon;
               return (
@@ -124,6 +134,7 @@ export default function EvalRunner({ initial }: { initial: EvalSummary | null })
                   <th className="px-4 py-2.5 font-medium">Expected</th>
                   <th className="px-4 py-2.5 font-medium">Sim</th>
                   <th className="px-4 py-2.5 font-medium">Grounded</th>
+                  <th className="px-4 py-2.5 font-medium">Faithful</th>
                   <th className="px-4 py-2.5 font-medium">Pass</th>
                 </tr>
               </thead>
@@ -137,6 +148,9 @@ export default function EvalRunner({ initial }: { initial: EvalSummary | null })
                     <td className="px-4 py-3 text-muted">{r.similarity.toFixed(2)}</td>
                     <td className="px-4 py-3">
                       <Tick ok={r.grounded} />
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.faithful == null ? <Minus className="h-4 w-4 text-muted" /> : <Tick ok={r.faithful} />}
                     </td>
                     <td className="px-4 py-3">
                       <Tick ok={r.pass} />
