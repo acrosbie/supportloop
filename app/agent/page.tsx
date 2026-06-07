@@ -60,11 +60,11 @@ export default async function AgentInbox({
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="w-0" />
                 <th className="px-3 py-2 font-medium">Subject</th>
-                <th className="px-3 py-2 font-medium">Priority</th>
-                <th className="px-3 py-2 font-medium">Assignee</th>
-                <th className="px-3 py-2 font-medium">SLA</th>
+                <th className="hidden px-3 py-2 font-medium md:table-cell">Priority</th>
+                <th className="hidden px-3 py-2 font-medium lg:table-cell">Assignee</th>
+                <th className="hidden px-3 py-2 font-medium lg:table-cell">SLA</th>
                 <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 pr-6 font-medium">Age</th>
+                <th className="hidden px-3 py-2 pr-6 font-medium sm:table-cell">Age</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -93,10 +93,10 @@ export default async function AgentInbox({
                       </span>
                     </Link>
                   </td>
-                  <td className="px-3 py-3">
+                  <td className="hidden px-3 py-3 md:table-cell">
                     <PriorityPill priority={t.priority} />
                   </td>
-                  <td className="px-3 py-3">
+                  <td className="hidden px-3 py-3 lg:table-cell">
                     {t.assignee_id ? (
                       <span className="flex items-center gap-1.5">
                         <Avatar name={agentName.get(t.assignee_id) || "A"} className="h-6 w-6 text-[9px]" />
@@ -106,13 +106,13 @@ export default async function AgentInbox({
                       <span className="text-xs text-muted">Unassigned</span>
                     )}
                   </td>
-                  <td className="px-3 py-3">
+                  <td className="hidden px-3 py-3 lg:table-cell">
                     <SlaCell t={t} />
                   </td>
                   <td className="px-3 py-3">
                     <StatusPill status={t.status} />
                   </td>
-                  <td className="px-3 py-3 pr-6 text-xs text-muted">{timeAgo(t.created_at)}</td>
+                  <td className="hidden px-3 py-3 pr-6 text-xs text-muted sm:table-cell">{timeAgo(t.created_at)}</td>
                 </tr>
               ))}
             </tbody>
