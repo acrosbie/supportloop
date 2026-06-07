@@ -178,6 +178,11 @@ export default function AdminKb({ articles }: { articles: Article[] }) {
           )}
         </div>
       ))}
+      {articles.length === 0 && (
+        <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+          No articles yet. Import or create your first article above.
+        </p>
+      )}
       </div>
     </div>
   );
