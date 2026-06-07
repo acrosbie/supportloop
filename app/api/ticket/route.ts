@@ -12,8 +12,10 @@ export async function POST(req: NextRequest) {
   let message: string;
   let subject: string | undefined;
   let orgSlug: string | undefined;
+  let email: string | undefined;
+  let channel: string | undefined;
   try {
-    ({ message, subject, orgSlug } = await req.json());
+    ({ message, subject, orgSlug, email, channel } = await req.json());
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -24,7 +26,14 @@ export async function POST(req: NextRequest) {
     const auth = await getAuth();
     const orgId = orgSlug ? await getOrgIdBySlug(orgSlug) : await resolveViewerOrgId();
     if (!orgId) return Response.json({ ok: false, error: "Unknown workspace" }, { status: 404 });
-    const ticketId = await createTicketFromChat(orgId, message, subject, auth?.id ?? null, auth?.email ?? null);
+    const ticketId = await createTicketFromChat(
+      orgId,
+      message,
+      subject,
+      auth?.id ?? null,
+      auth?.email ?? email ?? null,
+      channel ?? "chat"
+    );
     return Response.json({ ok: true, ticketId });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to create ticket";

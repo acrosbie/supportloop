@@ -93,13 +93,14 @@ export async function logEvent(
   if (error) throw new Error(`logEvent: ${error.message}`);
 }
 
-/** Escalation path from the customer chatbot: create an open ticket. */
+/** Escalation path from the chatbot or the "Submit a request" web form. */
 export async function createTicketFromChat(
   orgId: string,
   message: string,
   subject?: string,
   requesterId?: string | null,
-  requesterEmail?: string | null
+  requesterEmail?: string | null,
+  channel: string = "chat"
 ): Promise<string> {
   const id = randomUUID();
   const subj = subject?.trim() || (message.trim().length > 80 ? message.trim().slice(0, 80) + "…" : message.trim());
@@ -108,7 +109,7 @@ export async function createTicketFromChat(
     org_id: orgId,
     subject: subj,
     body: message,
-    channel: "chat",
+    channel,
     status: "open",
     urgency: "medium",
     queue: "Unassigned",

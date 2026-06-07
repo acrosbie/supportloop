@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getPublishedArticles } from "@/lib/data";
 import { resolveViewerOrgId } from "@/lib/org";
 import HelpSearch from "@/components/customer/HelpSearch";
@@ -18,6 +19,9 @@ export default async function HelpCenter() {
           <p className="mt-2 text-muted">
             Search Orbit's help center, or ask the AI assistant in the bottom-right corner.
           </p>
+          <Link href="/user/new" className="mt-3 inline-block text-sm font-medium text-accent-strong hover:underline">
+            Can&apos;t find an answer? Submit a request →
+          </Link>
         </div>
       </section>
 
