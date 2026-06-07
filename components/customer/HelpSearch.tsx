@@ -90,6 +90,25 @@ export default function HelpSearch({
               );
             })}
           </div>
+
+          <div className="mt-10 text-xs font-medium uppercase tracking-widest text-muted">Popular articles</div>
+          <ul className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border bg-white">
+            {articles.slice(0, 6).map((a) => {
+              const Icon = iconFor(a.category);
+              return (
+                <li key={a.id}>
+                  <Link href={`${articleBase}/${a.id}`} className="flex items-center gap-3 px-5 py-3.5 text-sm hover:bg-surface-2">
+                    <Icon className="h-4 w-4 shrink-0 text-muted" />
+                    <span className="min-w-0 flex-1">
+                      <span className="font-medium">{a.title}</span>
+                      <span className="ml-2 text-xs text-muted">{a.category}</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { getPublishedArticles } from "@/lib/data";
 import { resolveViewerOrgId } from "@/lib/org";
 import HelpSearch from "@/components/customer/HelpSearch";
-import ChatWidget from "@/components/customer/ChatWidget";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +27,6 @@ export default async function HelpCenter() {
       <div className="mx-auto max-w-5xl px-6 py-10">
         <HelpSearch articles={lite} />
       </div>
-
-      <ChatWidget />
     </div>
   );
 }

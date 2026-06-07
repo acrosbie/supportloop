@@ -39,6 +39,19 @@ export default async function ArticlePage({ params }: { params: { id: string } }
           ))}
         </div>
       )}
+
+      <div className="mt-10 rounded-2xl border border-border bg-surface p-6">
+        <div className="font-medium">Still need help?</div>
+        <p className="mt-1 text-sm text-muted">
+          Ask the assistant in the bottom-right corner, or open a request and a teammate will follow up.
+        </p>
+        <Link
+          href="/user/new"
+          className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-accent-strong hover:underline"
+        >
+          Submit a request →
+        </Link>
+      </div>
     </div>
   );
 }

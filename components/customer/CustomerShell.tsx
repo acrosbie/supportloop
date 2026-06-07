@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LifeBuoy, Users, Ticket } from "lucide-react";
+import { LifeBuoy, Users, Ticket, Send } from "lucide-react";
 import RoleSwitcher from "@/components/RoleSwitcher";
+import ChatWidget from "@/components/customer/ChatWidget";
 import LogoutButton from "@/components/auth/LogoutButton";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/user", label: "Help Center", icon: LifeBuoy, exact: true },
   { href: "/user/community", label: "Community", icon: Users },
+  { href: "/user/new", label: "Submit a request", icon: Send },
 ];
 
 /** Friendly, refined "Orbit Help Center" chrome — light, the customer face. */
@@ -88,6 +90,9 @@ export default function CustomerShell({
       </header>
 
       <div className="flex-1">{children}</div>
+
+      {/* The assistant follows the customer across every help-center page. */}
+      <ChatWidget />
 
       <footer className="border-t border-border bg-surface-2">
         <div className="mx-auto max-w-5xl px-6 py-5 text-xs text-muted">
