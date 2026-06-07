@@ -40,6 +40,7 @@ export default function DemoTour() {
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(true); // hidden until localStorage is read (no flash)
   const [done, setDone] = useState<number[]>([]);
+  const [show, setShow] = useState(false);
   const pathname = usePathname();
   // Operator surfaces have a left rail (and no chat widget); dock right there,
   // and left on customer/marketing (opposite the chat widget).
@@ -52,6 +53,11 @@ export default function DemoTour() {
     } catch {
       /* ignore */
     }
+    // Only show for anonymous visitors + demo accounts — not real signups.
+    fetch("/api/tour")
+      .then((r) => r.json())
+      .then((j) => setShow(!!j.show))
+      .catch(() => setShow(false));
   }, []);
 
   function dismiss() {
@@ -68,7 +74,7 @@ export default function DemoTour() {
     });
   }
 
-  if (dismissed) return null;
+  if (dismissed || !show) return null;
 
   return (
     <div className={`fixed bottom-5 z-50 print:hidden ${onRight ? "right-5" : "left-5"}`}>

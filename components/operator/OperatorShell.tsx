@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { Menu, Search, Inbox, BookOpen, LayoutDashboard, FlaskConical, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import RoleSwitcher from "@/components/RoleSwitcher";
-import ResetButton from "@/components/ResetButton";
 import LogoutButton from "@/components/auth/LogoutButton";
 import { Avatar } from "@/components/ui/avatar";
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
@@ -91,8 +90,7 @@ function Identity({ operator }: { operator: { name: string; role: string } }) {
           <span className="block text-xs text-muted">{operator.role}</span>
         </span>
       </div>
-      <div className="flex items-center justify-between gap-2">
-        <ResetButton />
+      <div className="flex items-center justify-end gap-2">
         <LogoutButton />
       </div>
     </div>
