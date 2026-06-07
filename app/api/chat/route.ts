@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { retrieve } from "@/lib/retrieve";
 import { decideGrounding } from "@/lib/guardrail";
 import { MODEL_GENERATE, streamMessageText } from "@/lib/anthropic";
-import { logEvent } from "@/lib/data";
+import { logEvent, logAiTrace } from "@/lib/data";
 import { resolveViewerOrgId, getOrgIdBySlug, getOrgSettings } from "@/lib/org";
 
 export const runtime = "nodejs";
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
   // Embeddable widget passes its workspace slug; in-app surfaces use the viewer's org.
   const orgId = orgSlug ? await getOrgIdBySlug(orgSlug) : await resolveViewerOrgId();
   if (!orgId) return Response.json({ error: "Unknown workspace" }, { status: 404 });
+  const t0 = Date.now();
   let matches;
   try {
     matches = await retrieve(message, orgId, 5);
@@ -38,6 +39,13 @@ export async function POST(req: NextRequest) {
 
   const settings = await getOrgSettings(orgId);
   const decision = decideGrounding(matches, settings.threshold);
+  await logAiTrace(orgId, {
+    surface: "chat",
+    model: MODEL_GENERATE,
+    latencyMs: Date.now() - t0,
+    grounded: decision.grounded,
+    topSimilarity: decision.topSimilarity,
+  });
   const sources = decision.sources.map((s) => ({
     id: s.id,
     title: s.title,

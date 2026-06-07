@@ -1,5 +1,5 @@
 import { getStaffOrgId } from "@/lib/auth";
-import { getInsightsData } from "@/lib/data";
+import { getInsightsData, logAiTrace } from "@/lib/data";
 import { MODEL_CLASSIFY, anthropic, textOf } from "@/lib/anthropic";
 
 export const runtime = "nodejs";
@@ -24,6 +24,7 @@ export async function POST() {
     "You are an analytics copilot for a customer-support team. Given this week's ticket data, write a tight 2–4 sentence executive summary of what changed and what to watch. Cite the real numbers, stay neutral and useful. No preamble, no bullet points, no markdown headings.";
 
   try {
+    const t0 = Date.now();
     const msg = await anthropic().messages.create({
       model: MODEL_CLASSIFY,
       max_tokens: 250,
@@ -34,6 +35,13 @@ export async function POST() {
           content: `This week: ${data.thisWeekTotal} tickets (${data.resolvedThisWeek} resolved). Last week: ${data.lastWeekTotal}.\n\nTop themes by volume:\n${lines}`,
         },
       ],
+    });
+    await logAiTrace(orgId, {
+      surface: "insights",
+      model: MODEL_CLASSIFY,
+      latencyMs: Date.now() - t0,
+      inputTokens: msg.usage.input_tokens,
+      outputTokens: msg.usage.output_tokens,
     });
     return Response.json({ ok: true, summary: textOf(msg) });
   } catch (e) {

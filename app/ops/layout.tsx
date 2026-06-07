@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth";
 
 const BASE_NAV: OperatorNavItem[] = [
   { href: "/ops", label: "Dashboard", hint: "Deflection, CSAT, volume", icon: "dashboard", exact: true },
+  { href: "/ops/activity", label: "AI activity", hint: "Traces, cost, latency", icon: "activity" },
   { href: "/ops/quality", label: "Quality / Evals", hint: "Grounded-rate", icon: "quality" },
 ];
 

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { MODEL_CLASSIFY, anthropic, parseJson, textOf } from "@/lib/anthropic";
-import { getTicket, saveTriage, type Triage } from "@/lib/data";
+import { getTicket, saveTriage, logAiTrace, type Triage } from "@/lib/data";
 import { getStaffOrgId } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -28,6 +28,7 @@ Respond with ONLY a JSON object (no prose, no code fences):
  "sentiment":"<one word: frustrated, neutral, confused, satisfied, or urgent>"}`;
 
   try {
+    const t0 = Date.now();
     const msg = await anthropic().messages.create({
       model: MODEL_CLASSIFY,
       max_tokens: 200,
@@ -36,6 +37,14 @@ Respond with ONLY a JSON object (no prose, no code fences):
     });
     const triage = parseJson<Triage>(textOf(msg));
     await saveTriage(orgId, ticketId, triage);
+    await logAiTrace(orgId, {
+      surface: "triage",
+      model: MODEL_CLASSIFY,
+      latencyMs: Date.now() - t0,
+      inputTokens: msg.usage.input_tokens,
+      outputTokens: msg.usage.output_tokens,
+      ticketId,
+    });
     return Response.json(triage);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Triage failed";

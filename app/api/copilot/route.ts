@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getStaffOrgId } from "@/lib/auth";
-import { getTicket, getTicketMessages } from "@/lib/data";
+import { getTicket, getTicketMessages, logAiTrace } from "@/lib/data";
 import { MODEL_CLASSIFY, anthropic, parseJson, textOf } from "@/lib/anthropic";
 
 export const runtime = "nodejs";
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
  "sentiment":"<one word: frustrated, neutral, confused, satisfied, or urgent>"}`;
 
   try {
+    const t0 = Date.now();
     const msg = await anthropic().messages.create({
       model: MODEL_CLASSIFY,
       max_tokens: 300,
@@ -43,6 +44,14 @@ export async function POST(req: NextRequest) {
       messages: [{ role: "user", content: `Subject: ${ticket.subject}\n\n${thread}` }],
     });
     const out = parseJson<CopilotOut>(textOf(msg));
+    await logAiTrace(orgId, {
+      surface: "copilot",
+      model: MODEL_CLASSIFY,
+      latencyMs: Date.now() - t0,
+      inputTokens: msg.usage.input_tokens,
+      outputTokens: msg.usage.output_tokens,
+      ticketId,
+    });
     return Response.json({ ok: true, summary: out.summary, next_action: out.next_action, sentiment: out.sentiment });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : "Copilot failed" }, { status: 502 });

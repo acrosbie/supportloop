@@ -806,3 +806,97 @@ export async function appendLiveMessage(
     await supabaseAdmin().from("tickets").update({ status: "assisted" }).eq("id", ticketId).eq("org_id", orgId);
   }
 }
+
+// ---------------------------------------------------------------------------
+// AI observability — trace every model call (latency, tokens, $, grounding)
+// ---------------------------------------------------------------------------
+const AI_PRICING: Record<string, { in: number; out: number }> = {
+  // Illustrative $/M-token rates.
+  "claude-sonnet-4-6": { in: 3, out: 15 },
+  "claude-haiku-4-5-20251001": { in: 1, out: 5 },
+};
+function aiCost(model: string, inTok: number, outTok: number): number {
+  const p = AI_PRICING[model] ?? { in: 1, out: 5 };
+  return (inTok * p.in + outTok * p.out) / 1_000_000;
+}
+
+export interface AiTrace {
+  surface: string;
+  model: string;
+  latencyMs: number;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  grounded?: boolean | null;
+  topSimilarity?: number | null;
+  ticketId?: string | null;
+}
+
+/** Best-effort: record one AI interaction for the observability view. */
+export async function logAiTrace(orgId: string, t: AiTrace): Promise<void> {
+  const costUsd =
+    t.inputTokens != null && t.outputTokens != null ? aiCost(t.model, t.inputTokens, t.outputTokens) : null;
+  try {
+    await supabaseAdmin().from("events").insert({
+      org_id: orgId,
+      type: "ai_trace",
+      ticket_id: t.ticketId ?? null,
+      meta: {
+        surface: t.surface,
+        model: t.model,
+        latencyMs: t.latencyMs,
+        inputTokens: t.inputTokens ?? null,
+        outputTokens: t.outputTokens ?? null,
+        costUsd,
+        grounded: t.grounded ?? null,
+        topSimilarity: t.topSimilarity ?? null,
+      },
+    });
+  } catch {
+    /* tracing must never break the AI flow */
+  }
+}
+
+export interface AiActivityRow {
+  surface: string;
+  model: string;
+  latencyMs: number;
+  costUsd: number | null;
+  grounded: boolean | null;
+  topSimilarity: number | null;
+  created_at: string;
+}
+export interface AiActivity {
+  rows: AiActivityRow[];
+  totalCalls: number;
+  totalCost: number;
+  avgLatency: number;
+  groundedRate: number | null;
+}
+
+export async function getAiActivity(orgId: string, limit = 60): Promise<AiActivity> {
+  const { data } = await supabaseAdmin()
+    .from("events")
+    .select("meta,created_at")
+    .eq("org_id", orgId)
+    .eq("type", "ai_trace")
+    .order("created_at", { ascending: false })
+    .limit(300);
+  const rows: AiActivityRow[] = (data ?? []).map((e) => {
+    const meta = (e.meta ?? {}) as Record<string, unknown>;
+    return {
+      surface: String(meta.surface ?? "—"),
+      model: String(meta.model ?? "—"),
+      latencyMs: Number(meta.latencyMs ?? 0),
+      costUsd: meta.costUsd == null ? null : Number(meta.costUsd),
+      grounded: meta.grounded == null ? null : Boolean(meta.grounded),
+      topSimilarity: meta.topSimilarity == null ? null : Number(meta.topSimilarity),
+      created_at: e.created_at as string,
+    };
+  });
+  const totalCalls = rows.length;
+  const totalCost = rows.reduce((s, r) => s + (r.costUsd ?? 0), 0);
+  const avgLatency = totalCalls ? rows.reduce((s, r) => s + r.latencyMs, 0) / totalCalls : 0;
+  const grounding = rows.filter((r) => r.grounded != null);
+  const groundedRate = grounding.length ? grounding.filter((r) => r.grounded).length / grounding.length : null;
+  return { rows: rows.slice(0, limit), totalCalls, totalCost, avgLatency, groundedRate };
+}
