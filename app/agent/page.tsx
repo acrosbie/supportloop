@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Inbox } from "lucide-react";
-import { getAuth } from "@/lib/auth";
+import { getAuth, NO_ORG } from "@/lib/auth";
 import { getQueue, getQueueCounts, getAgents } from "@/lib/data";
 import type { Ticket } from "@/lib/types";
 import QueueControls from "@/components/agent/QueueControls";
@@ -29,7 +29,7 @@ export default async function AgentInbox({
 }) {
   const me = await getAuth();
   const meId = me?.id ?? "";
-  const orgId = me?.orgId ?? "";
+  const orgId = me?.orgId ?? NO_ORG;
   const view = searchParams.view || "my-open";
   const q = searchParams.q || "";
 

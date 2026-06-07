@@ -1,6 +1,6 @@
 import { CheckCircle2, Sparkles, Eye, BookOpen, ArrowRight } from "lucide-react";
 import { getResolvedTickets, getDraftArticles } from "@/lib/data";
-import { getAuth } from "@/lib/auth";
+import { getAuth, NO_ORG } from "@/lib/auth";
 import KnowledgeLoop from "@/components/agent/KnowledgeLoop";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ const FLOW = [
 
 export default async function KnowledgeLoopPage() {
   const me = await getAuth();
-  const orgId = me?.orgId ?? "";
+  const orgId = me?.orgId ?? NO_ORG;
   const [resolved, drafts] = await Promise.all([getResolvedTickets(orgId, 10), getDraftArticles(orgId)]);
 
   return (

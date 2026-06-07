@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth";
+import { requireRole, NO_ORG } from "@/lib/auth";
 import { getOrgById } from "@/lib/org";
 import { getAllArticles } from "@/lib/data";
 import OnboardingWizard from "@/components/onboarding/OnboardingWizard";
@@ -8,7 +8,7 @@ export const metadata = { title: "Set up your workspace" };
 
 export default async function OnboardingPage() {
   const me = await requireRole(["admin"]);
-  const orgId = me.orgId ?? "";
+  const orgId = me.orgId ?? NO_ORG;
   const [org, articles] = await Promise.all([getOrgById(orgId), getAllArticles(orgId)]);
 
   const siteUrl =

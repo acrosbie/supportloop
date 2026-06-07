@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Ticket as TicketIcon } from "lucide-react";
-import { getAuth } from "@/lib/auth";
+import { getAuth, NO_ORG } from "@/lib/auth";
 import { getMyTickets } from "@/lib/data";
 import { StatusPill } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function MyTickets() {
   const auth = await getAuth();
   if (!auth) redirect("/login?next=/user/tickets");
-  const tickets = await getMyTickets(auth.orgId ?? "", auth.id);
+  const tickets = await getMyTickets(auth.orgId ?? NO_ORG, auth.id);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">

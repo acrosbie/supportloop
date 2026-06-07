@@ -4,6 +4,14 @@ import type { Role } from "./demo-accounts";
 
 export type { Role };
 
+/**
+ * Sentinel org id for "authenticated but no org on the JWT" — e.g. a session
+ * minted before tenancy existed. It's a valid UUID that matches no rows, so
+ * org-scoped queries return empty instead of throwing on an invalid uuid.
+ * Re-authenticating mints a fresh token carrying the real org_id.
+ */
+export const NO_ORG = "00000000-0000-0000-0000-000000000000";
+
 export interface AuthUser {
   id: string;
   email: string;

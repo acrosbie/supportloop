@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTicket, getTicketMessages, getAgents, getCannedResponses } from "@/lib/data";
-import { getAuth } from "@/lib/auth";
+import { getAuth, NO_ORG } from "@/lib/auth";
 import TriagePanel from "@/components/agent/TriagePanel";
 import TicketProperties from "@/components/agent/TicketProperties";
 import ReplyComposer from "@/components/agent/ReplyComposer";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TicketDetail({ params }: { params: { id: string } }) {
   const me = await getAuth();
-  const orgId = me?.orgId ?? "";
+  const orgId = me?.orgId ?? NO_ORG;
   const ticket = await getTicket(orgId, params.id);
   if (!ticket) notFound();
   const [messages, agents, canned] = await Promise.all([

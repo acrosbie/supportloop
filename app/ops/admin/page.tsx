@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth";
+import { requireRole, NO_ORG } from "@/lib/auth";
 import { getAllProfiles, getAllArticles } from "@/lib/data";
 import { getOrgById } from "@/lib/org";
 import AdminTeam from "@/components/admin/AdminTeam";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const me = await requireRole(["admin"]);
-  const orgId = me.orgId ?? "";
+  const orgId = me.orgId ?? NO_ORG;
   const [profiles, articles, org] = await Promise.all([getAllProfiles(orgId), getAllArticles(orgId), getOrgById(orgId)]);
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||

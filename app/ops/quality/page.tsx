@@ -1,12 +1,12 @@
 import { getLatestEvalRun } from "@/lib/data";
-import { getAuth } from "@/lib/auth";
+import { getAuth, NO_ORG } from "@/lib/auth";
 import EvalRunner, { type EvalSummary } from "@/components/operator/EvalRunner";
 
 export const dynamic = "force-dynamic";
 
 export default async function Quality() {
   const me = await getAuth();
-  const latest = await getLatestEvalRun(me?.orgId ?? "");
+  const latest = await getLatestEvalRun(me?.orgId ?? NO_ORG);
   const initial: EvalSummary | null = latest
     ? {
         total: latest.total,
