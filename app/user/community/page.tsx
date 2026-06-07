@@ -23,7 +23,7 @@ export default async function Community() {
           <p className="mt-1 text-muted">Get help from other Orbit users and our support team.</p>
         </div>
         <Button asChild>
-          <Link href="/user/new">Ask a question</Link>
+          <Link href="/user/community/new">Ask a question</Link>
         </Button>
       </div>
 
@@ -71,7 +71,7 @@ export default async function Community() {
               answers from the help center.
             </p>
             <Button asChild className="mt-4 w-full">
-              <Link href="/user/new">Ask a question</Link>
+              <Link href="/user/community/new">Ask a question</Link>
             </Button>
           </div>
           <div className="rounded-xl border border-border bg-surface p-5">

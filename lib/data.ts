@@ -404,6 +404,23 @@ export async function getCommunityAnswers(orgId: string, questionId: string): Pr
   return (data ?? []) as CommunityAnswer[];
 }
 
+/** A customer posts a question to the community. */
+export async function createCommunityQuestion(orgId: string, title: string, body: string): Promise<string> {
+  const id = randomUUID();
+  const [embedding] = await embed([`${title}\n\n${body}`], "document");
+  const { error } = await supabaseAdmin().from("community_questions").insert({
+    id,
+    org_id: orgId,
+    title,
+    body,
+    status: "open",
+    has_kb_gap: false,
+    embedding: toVector(embedding),
+  });
+  if (error) throw new Error(`createCommunityQuestion: ${error.message}`);
+  return id;
+}
+
 export async function createAiAnswer(orgId: string, questionId: string, body: string): Promise<string> {
   const id = randomUUID();
   const { error } = await supabaseAdmin()

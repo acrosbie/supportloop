@@ -28,24 +28,12 @@ export default async function HostedHelpCenter({ params }: { params: { slug: str
       </header>
 
       <main className="flex-1">
-      <section className="bg-gradient-to-b from-accent-soft to-white">
-        <div className="mx-auto max-w-3xl px-6 pb-8 pt-16 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight">How can we help?</h1>
-          <p className="mt-2 text-muted">
-            Search {org.name}&apos;s help center, or ask the AI assistant in the bottom-right corner.
-          </p>
-        </div>
-      </section>
-
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        {lite.length > 0 ? (
-          <HelpSearch articles={lite} articleBase={`/help/${org.slug}/article`} />
-        ) : (
-          <p className="text-center text-sm text-muted">
-            This help center doesn&apos;t have any published articles yet.
-          </p>
-        )}
-      </div>
+        <HelpSearch
+          articles={lite}
+          articleBase={`/help/${org.slug}/article`}
+          title="How can we help?"
+          subtitle={`Search ${org.name}'s help center, or ask the assistant in the bottom-right corner.`}
+        />
       </main>
 
       <ChatWidget orgSlug={org.slug} orgName={org.name} />
