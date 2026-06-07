@@ -1,16 +1,22 @@
 import { requireRole, NO_ORG } from "@/lib/auth";
 import { getAllProfiles, getAllArticles } from "@/lib/data";
-import { getOrgById } from "@/lib/org";
+import { getOrgById, getOrgSettings } from "@/lib/org";
 import AdminTeam from "@/components/admin/AdminTeam";
 import AdminKb from "@/components/admin/AdminKb";
 import InstallWidget from "@/components/admin/InstallWidget";
+import AdminSettings from "@/components/admin/AdminSettings";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const me = await requireRole(["admin"]);
   const orgId = me.orgId ?? NO_ORG;
-  const [profiles, articles, org] = await Promise.all([getAllProfiles(orgId), getAllArticles(orgId), getOrgById(orgId)]);
+  const [profiles, articles, org, settings] = await Promise.all([
+    getAllProfiles(orgId),
+    getAllArticles(orgId),
+    getOrgById(orgId),
+    getOrgSettings(orgId),
+  ]);
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
@@ -22,6 +28,13 @@ export default async function AdminPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
         <p className="mt-1 text-muted">Manage the team, the knowledge base, and your chat widget.</p>
       </div>
+
+      <section>
+        <h2 className="text-xs font-medium uppercase tracking-widest text-muted">Workspace</h2>
+        <div className="mt-3">
+          <AdminSettings initial={settings} />
+        </div>
+      </section>
 
       <section>
         <h2 className="text-xs font-medium uppercase tracking-widest text-muted">Team &amp; roles</h2>

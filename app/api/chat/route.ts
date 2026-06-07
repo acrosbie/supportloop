@@ -3,7 +3,7 @@ import { retrieve } from "@/lib/retrieve";
 import { decideGrounding } from "@/lib/guardrail";
 import { MODEL_GENERATE, streamMessageText } from "@/lib/anthropic";
 import { logEvent } from "@/lib/data";
-import { resolveViewerOrgId, getOrgIdBySlug } from "@/lib/org";
+import { resolveViewerOrgId, getOrgIdBySlug, getOrgSettings } from "@/lib/org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: msg }, { status: 500 });
   }
 
-  const decision = decideGrounding(matches);
+  const settings = await getOrgSettings(orgId);
+  const decision = decideGrounding(matches, settings.threshold);
   const sources = decision.sources.map((s) => ({
     id: s.id,
     title: s.title,

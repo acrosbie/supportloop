@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import { Sparkles } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
 
@@ -27,7 +27,15 @@ function patchLast(arr: Msg[], patch: Partial<Msg>): Msg[] {
 }
 
 /** Standalone, embeddable chat — fills an iframe and is scoped to one workspace. */
-export default function WidgetChat({ orgName, orgSlug }: { orgName: string; orgSlug: string }) {
+export default function WidgetChat({
+  orgName,
+  orgSlug,
+  accentStyle,
+}: {
+  orgName: string;
+  orgSlug: string;
+  accentStyle?: CSSProperties;
+}) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -93,7 +101,7 @@ export default function WidgetChat({ orgName, orgSlug }: { orgName: string; orgS
   }
 
   return (
-    <div className="flex h-screen flex-col bg-white">
+    <div className="flex h-screen flex-col bg-white" style={accentStyle}>
       <div className="flex items-center gap-2.5 bg-gradient-to-br from-accent-strong to-accent px-4 py-4 text-accent-fg">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
           <Sparkles className="h-5 w-5" />

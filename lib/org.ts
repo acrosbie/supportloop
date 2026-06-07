@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { supabaseAdmin } from "./supabase";
 import { getAuth } from "./auth";
 
@@ -45,4 +46,51 @@ export async function getDemoOrgId(): Promise<string> {
 export async function resolveViewerOrgId(): Promise<string> {
   const auth = await getAuth();
   return auth?.orgId ?? (await getDemoOrgId());
+}
+
+// ---------------------------------------------------------------------------
+// Per-org settings & branding (R4)
+// ---------------------------------------------------------------------------
+export interface OrgSettings {
+  accent?: string; // hex, e.g. "#5e6ad2"
+  tagline?: string; // help-center hero subtitle
+  threshold?: number; // grounding similarity override
+}
+
+export async function getOrgSettings(orgId: string): Promise<OrgSettings> {
+  const { data } = await supabaseAdmin().from("organizations").select("settings").eq("id", orgId).maybeSingle();
+  return ((data?.settings as OrgSettings) ?? {}) as OrgSettings;
+}
+
+export async function updateOrgSettings(orgId: string, patch: OrgSettings): Promise<void> {
+  const current = await getOrgSettings(orgId);
+  const { error } = await supabaseAdmin()
+    .from("organizations")
+    .update({ settings: { ...current, ...patch } })
+    .eq("id", orgId);
+  if (error) throw new Error(`updateOrgSettings: ${error.message}`);
+}
+
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = hex.trim().replace("#", "").match(/^([0-9a-f]{6})$/i);
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/** CSS-var overrides (--accent etc.) from a hex accent, for per-org branding. */
+export function accentVars(hex?: string): CSSProperties {
+  if (!hex) return {};
+  const rgb = hexToRgb(hex);
+  if (!rgb) return {};
+  const [r, g, b] = rgb;
+  const strong = rgb.map((c) => Math.round(c * 0.85));
+  const soft = rgb.map((c) => Math.round(c + (255 - c) * 0.9));
+  const vars: Record<string, string> = {
+    "--accent": `${r} ${g} ${b}`,
+    "--accent-strong": `${strong[0]} ${strong[1]} ${strong[2]}`,
+    "--accent-soft": `${soft[0]} ${soft[1]} ${soft[2]}`,
+    "--accent-fg": "255 255 255",
+  };
+  return vars as unknown as CSSProperties;
 }
