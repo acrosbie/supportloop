@@ -224,7 +224,7 @@ export default function Home() {
               <h2 className="text-xs font-medium uppercase tracking-widest text-muted">See it live</h2>
               <p className="mt-2 max-w-2xl text-2xl font-semibold tracking-tight">Explore a fully seeded workspace.</p>
             </div>
-            <span className="text-sm text-muted">Demo data for a fictional customer, “Orbit.”</span>
+            <span className="text-sm text-muted">A fully seeded sample workspace.</span>
           </div>
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
             {DEMO_SURFACES.map((w) => {

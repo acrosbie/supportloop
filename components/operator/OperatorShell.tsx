@@ -172,7 +172,7 @@ export default function OperatorShell({
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 overflow-auto bg-background">{children}</main>
+        <main key={pathname} className="min-w-0 flex-1 animate-fade-in overflow-auto bg-background">{children}</main>
       </div>
     </div>
   );

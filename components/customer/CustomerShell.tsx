@@ -150,7 +150,7 @@ export default function CustomerShell({
         </div>
       </header>
 
-      <div className="flex-1">{children}</div>
+      <div key={pathname} className="flex-1 animate-fade-in">{children}</div>
 
       {/* The assistant follows the customer across every help-center page. */}
       <ChatWidget />
