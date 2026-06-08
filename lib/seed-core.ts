@@ -574,6 +574,32 @@ function assignCustomerEmails(tickets: GenTicket[], customers: CustomerSeed[]): 
   }
 }
 
+const DEFAULT_WORKFLOW_STEPS = [
+  { type: "triage" },
+  { type: "priority_by_account" },
+  { type: "draft_reply" },
+  { type: "extract_fields" },
+];
+
+/** Seed the default "New ticket intake" workflow. Best-effort (needs 0009). */
+async function seedWorkflows(sb: SupabaseClient, orgId: string): Promise<void> {
+  const { error } = await sb.from("workflows").select("id").limit(1);
+  if (error) return; // 0009 not applied
+  await sb.from("workflow_runs").delete().eq("org_id", orgId);
+  await sb.from("workflows").delete().eq("org_id", orgId);
+  await insertAll(sb, "workflows", [
+    {
+      id: randomUUID(),
+      org_id: orgId,
+      name: "New ticket intake",
+      trigger: "ticket.created",
+      enabled: true,
+      steps: DEFAULT_WORKFLOW_STEPS,
+      position: 0,
+    },
+  ]);
+}
+
 /**
  * Ensure the three one-click demo accounts exist with the right role + password.
  * Idempotent — safe to run on every seed/reset. Returns role -> user id.
@@ -727,6 +753,9 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   const canned = CANNED.map((c) => ({ id: randomUUID(), org_id: orgId, ...c }));
   await insertAll(sb, "canned_responses", canned);
 
+  // Workflows (ticket.created intake automation).
+  await seedWorkflows(sb, orgId);
+
   // Dogfood: seed the SupportLoop org with its own real product data.
   const sl = await seedSupportLoopOrg(sb);
 
@@ -841,6 +870,8 @@ async function seedSupportLoopOrg(sb: SupabaseClient): Promise<{ kb_articles: nu
   // Canned macros (reuse the generic set).
   const canned = CANNED.map((c) => ({ id: randomUUID(), org_id: orgId, ...c }));
   await insertAll(sb, "canned_responses", canned);
+
+  await seedWorkflows(sb, orgId);
 
   return { kb_articles: kbRows.length, tickets: tickets.length };
 }

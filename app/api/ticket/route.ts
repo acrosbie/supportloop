@@ -1,10 +1,12 @@
 import { NextRequest } from "next/server";
 import { createTicketFromChat } from "@/lib/data";
+import { runTicketCreated } from "@/lib/workflows";
 import { getAuth } from "@/lib/auth";
 import { resolveViewerOrgId, getOrgIdBySlug } from "@/lib/org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 // Escalation path from the chatbot: turn the customer's question into an open
 // ticket and log an escalation event.
@@ -34,6 +36,9 @@ export async function POST(req: NextRequest) {
       auth?.email ?? email ?? null,
       channel ?? "chat"
     );
+    // Fire the ticket.created workflows (triage, route, draft, extract). Awaited
+    // so it completes in this serverless invocation; never blocks the response.
+    await runTicketCreated(orgId, ticketId).catch(() => {});
     return Response.json({ ok: true, ticketId });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to create ticket";

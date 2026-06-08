@@ -17,6 +17,8 @@ import Copilot from "@/components/agent/Copilot";
 import AgentActions from "@/components/agent/AgentActions";
 import CustomerPanel from "@/components/agent/CustomerPanel";
 import FieldsEditor from "@/components/FieldsEditor";
+import AutomationPanel from "@/components/agent/AutomationPanel";
+import { getWorkflowRunsForTicket } from "@/lib/workflows";
 import LiveChatRoom from "@/components/LiveChatRoom";
 import { Badge, PriorityPill, StatusPill } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -30,13 +32,14 @@ export default async function TicketDetail({ params }: { params: { id: string } 
   const orgId = me?.orgId ?? NO_ORG;
   const ticket = await getTicket(orgId, params.id);
   if (!ticket) notFound();
-  const [messages, agents, canned, similar, customer, ticketFields] = await Promise.all([
+  const [messages, agents, canned, similar, customer, ticketFields, workflowRuns] = await Promise.all([
     getTicketMessages(orgId, params.id),
     getAgents(orgId),
     getCannedResponses(orgId),
     getSimilarTickets(orgId, params.id),
     getCustomerContext(orgId, params.id),
     getFieldsForRecord(orgId, "ticket", params.id),
+    getWorkflowRunsForTicket(orgId, params.id),
   ]);
   const resolved = ticket.status === "resolved" || ticket.status === "deflected";
   const requester = ticket.requester_email || "anonymous";
@@ -131,6 +134,7 @@ export default async function TicketDetail({ params }: { params: { id: string } 
             similar={similar.map((s) => ({ id: s.id, subject: s.subject, intent: s.intent }))}
           />
           <AgentActions ticketId={ticket.id} />
+          <AutomationPanel ticketId={ticket.id} runs={workflowRuns} />
           <TriagePanel ticketId={ticket.id} />
           <TicketProperties
             ticketId={ticket.id}
