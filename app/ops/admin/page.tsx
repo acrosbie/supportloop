@@ -1,21 +1,23 @@
 import { requireRole, NO_ORG } from "@/lib/auth";
-import { getAllProfiles, getAllArticles } from "@/lib/data";
+import { getAllProfiles, getAllArticles, getAllCustomFieldDefs } from "@/lib/data";
 import { getOrgById, getOrgSettings } from "@/lib/org";
 import AdminTeam from "@/components/admin/AdminTeam";
 import AdminKb from "@/components/admin/AdminKb";
 import InstallWidget from "@/components/admin/InstallWidget";
 import AdminSettings from "@/components/admin/AdminSettings";
+import CustomFieldsManager from "@/components/admin/CustomFieldsManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const me = await requireRole(["admin"]);
   const orgId = me.orgId ?? NO_ORG;
-  const [profiles, articles, org, settings] = await Promise.all([
+  const [profiles, articles, org, settings, fieldDefs] = await Promise.all([
     getAllProfiles(orgId),
     getAllArticles(orgId),
     getOrgById(orgId),
     getOrgSettings(orgId),
+    getAllCustomFieldDefs(orgId),
   ]);
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
@@ -33,6 +35,24 @@ export default async function AdminPage() {
         <h2 className="text-xs font-medium uppercase tracking-widest text-muted">Workspace</h2>
         <div className="mt-3">
           <AdminSettings initial={settings} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-xs font-medium uppercase tracking-widest text-muted">Custom fields</h2>
+        <p className="mt-1 text-xs text-muted">Define fields that appear on customers, accounts, tickets, and docs.</p>
+        <div className="mt-3">
+          <CustomFieldsManager
+            defs={fieldDefs.map((d) => ({
+              id: d.id,
+              entity: d.entity,
+              key: d.key,
+              label: d.label,
+              type: d.type,
+              options: d.options,
+              required: d.required,
+            }))}
+          />
         </div>
       </section>
 
