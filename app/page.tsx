@@ -179,7 +179,7 @@ export default function Home() {
             {STEPS.map((s, i) => {
               const Icon = s.icon;
               return (
-                <Card key={s.title} className="p-5 transition-colors hover:border-border-strong">
+                <Card key={s.title} className="p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md">
                   <div className="flex items-center gap-3">
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
                       <Icon className="h-5 w-5" />
@@ -208,7 +208,7 @@ export default function Home() {
             {FEATURES.map((f) => {
               const Icon = f.icon;
               return (
-                <Card key={f.title} className="p-5">
+                <Card key={f.title} className="p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent-strong">
                     <Icon className="h-5 w-5" />
                   </span>

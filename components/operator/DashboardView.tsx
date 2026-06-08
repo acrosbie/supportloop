@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ShieldCheck, Bot, Star, Inbox, BookOpen } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import VolumeChart from "./VolumeChart";
+import CountUp from "@/components/CountUp";
 import { cn } from "@/lib/utils";
 
 interface MetricSet {
@@ -20,17 +21,15 @@ interface Props {
   kbFromTickets: number;
 }
 
-const pct = (x: number) => `${Math.round(x * 100)}%`;
-
 export default function DashboardView({ all, today, volume, topIntents, kbFromTickets }: Props) {
   const [scope, setScope] = useState<"all" | "today">("all");
   const m = scope === "all" ? all : today;
 
-  const cards: { label: string; value: string; sub: string; icon: LucideIcon; tone: string }[] = [
-    { label: "Deflection rate", value: pct(m.deflectionRate), sub: "resolved without an agent", icon: ShieldCheck, tone: "bg-success-soft text-success" },
-    { label: "Automation rate", value: pct(m.automationRate), sub: "AI-assisted resolutions", icon: Bot, tone: "bg-accent-soft text-accent-strong" },
-    { label: "Avg CSAT", value: m.avgCsat != null ? m.avgCsat.toFixed(1) : "—", sub: "of 5", icon: Star, tone: "bg-warning-soft text-warning" },
-    { label: scope === "all" ? "Tickets (all time)" : "Tickets today", value: String(m.total), sub: "across all channels", icon: Inbox, tone: "bg-surface-2 text-muted" },
+  const cards: { label: string; value: ReactNode; sub: string; icon: LucideIcon; tone: string }[] = [
+    { label: "Deflection rate", value: <CountUp value={Math.round(m.deflectionRate * 100)} suffix="%" />, sub: "resolved without an agent", icon: ShieldCheck, tone: "bg-success-soft text-success" },
+    { label: "Automation rate", value: <CountUp value={Math.round(m.automationRate * 100)} suffix="%" />, sub: "AI-assisted resolutions", icon: Bot, tone: "bg-accent-soft text-accent-strong" },
+    { label: "Avg CSAT", value: m.avgCsat != null ? <CountUp value={m.avgCsat} decimals={1} /> : "—", sub: "of 5", icon: Star, tone: "bg-warning-soft text-warning" },
+    { label: scope === "all" ? "Tickets (all time)" : "Tickets today", value: <CountUp value={m.total} />, sub: "across all channels", icon: Inbox, tone: "bg-surface-2 text-muted" },
   ];
 
   return (
@@ -60,7 +59,7 @@ export default function DashboardView({ all, today, volume, topIntents, kbFromTi
         {cards.map((c) => {
           const Icon = c.icon;
           return (
-            <div key={c.label} className="rounded-xl border border-border bg-surface p-5">
+            <div key={c.label} className="rounded-xl border border-border bg-surface p-5 transition-all duration-150 hover:border-border-strong hover:shadow-md">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted">{c.label}</span>
                 <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", c.tone)}>
