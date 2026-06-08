@@ -50,6 +50,7 @@ const config: Config = {
         "sheet-in-right": { from: { transform: "translateX(100%)" }, to: { transform: "translateX(0)" } },
         "sheet-in-left": { from: { transform: "translateX(-100%)" }, to: { transform: "translateX(0)" } },
         shimmer: { "0%": { backgroundPosition: "100% 0" }, "100%": { backgroundPosition: "0 0" } },
+        "fade-up": { from: { opacity: "0", transform: "translateY(14px)" }, to: { opacity: "1", transform: "translateY(0)" } },
       },
       animation: {
         "fade-in": "fade-in 0.2s ease",
@@ -58,6 +59,7 @@ const config: Config = {
         "sheet-in-right": "sheet-in-right 0.24s cubic-bezier(0.16, 1, 0.3, 1)",
         "sheet-in-left": "sheet-in-left 0.24s cubic-bezier(0.16, 1, 0.3, 1)",
         shimmer: "shimmer 1.4s ease-in-out infinite",
+        "fade-up": "fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both",
       },
       transitionTimingFunction: {
         premium: "cubic-bezier(0.16, 1, 0.3, 1)",

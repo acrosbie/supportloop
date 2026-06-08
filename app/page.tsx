@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import HeroPreview from "@/components/marketing/HeroPreview";
 
 const STEPS = [
   { icon: MessageSquare, title: "Customer asks", body: "Your help center + an AI chatbot answer from your own knowledge base." },
@@ -107,41 +108,63 @@ export default function Home() {
 
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-border">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-70"
-          style={{
-            background:
-              "radial-gradient(60rem 30rem at 70% -10%, rgb(var(--accent) / 0.10), transparent), radial-gradient(40rem 24rem at 5% 10%, rgb(var(--accent) / 0.06), transparent)",
-          }}
-        />
-        <div className="relative mx-auto max-w-6xl px-6 py-20">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted shadow-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            The closed-loop support platform
-          </span>
-          <h1 className="mt-6 max-w-3xl text-balance text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            Close the loop on customer support.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-            SupportLoop deflects routine questions with grounded AI, drafts replies for your agents, turns every
-            resolved ticket into knowledge, and shows you the metrics that prove it — one platform, one closed loop.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Button asChild size="lg">
-              <Link href="/signup">
-                Start free <ArrowRight className="h-4 w-4" />
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(50rem 32rem at 78% -10%, rgb(var(--accent) / 0.16), transparent), radial-gradient(40rem 24rem at 0% 15%, rgb(var(--accent) / 0.08), transparent)",
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-50"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, rgb(var(--border)) 1px, transparent 1px), linear-gradient(to bottom, rgb(var(--border)) 1px, transparent 1px)",
+              backgroundSize: "44px 44px",
+              maskImage: "radial-gradient(54rem 40rem at 55% -5%, black, transparent 75%)",
+              WebkitMaskImage: "radial-gradient(54rem 40rem at 55% -5%, black, transparent 75%)",
+            }}
+          />
+        </div>
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[1.05fr_1fr] lg:py-24">
+          <div className="animate-fade-up">
+            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3 py-1 text-xs text-muted shadow-sm backdrop-blur">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+              </span>
+              The closed-loop support platform
+            </span>
+            <h1 className="mt-6 text-balance text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
+              Close the{" "}
+              <span className="bg-gradient-to-r from-accent to-violet-500 bg-clip-text text-transparent">loop</span> on
+              customer support.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
+              SupportLoop deflects routine questions with grounded AI, drafts replies for your agents, turns every
+              resolved ticket into knowledge, and shows the metrics that prove it — one closed loop.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Button asChild size="lg">
+                <Link href="/signup">
+                  Start free <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/user">See a live demo</Link>
+              </Button>
+            </div>
+            <p className="mt-5 text-sm text-muted">
+              No credit card ·{" "}
+              <Link href="/try" className="font-medium text-accent-strong hover:underline">
+                paste your own docs and ask it anything →
               </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/user">See a live demo</Link>
-            </Button>
+            </p>
           </div>
-          <p className="mt-6 text-sm text-muted">
-            No credit card. Spin up a workspace and import your help center in minutes.
-          </p>
-          <Link href="/try" className="mt-3 inline-block text-sm font-medium text-accent-strong hover:underline">
-            Or paste your own docs and ask it anything →
-          </Link>
+          <div className="animate-fade-up [animation-delay:140ms]">
+            <HeroPreview />
+          </div>
         </div>
       </section>
 
