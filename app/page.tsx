@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import HeroPreview from "@/components/marketing/HeroPreview";
+import RevealGroup from "@/components/RevealGroup";
 
 const STEPS = [
   { icon: MessageSquare, title: "Customer asks", body: "Your help center + an AI chatbot answer from your own knowledge base." },
@@ -169,6 +170,7 @@ export default function Home() {
       </section>
 
       <div className="mx-auto max-w-6xl px-6">
+        <RevealGroup>
         {/* How it works / flywheel */}
         <section id="how" className="scroll-mt-20 py-16">
           <h2 className="text-xs font-medium uppercase tracking-widest text-muted">How it works</h2>
@@ -338,6 +340,7 @@ export default function Home() {
             </div>
           </Card>
         </section>
+        </RevealGroup>
       </div>
 
       {/* Footer */}
