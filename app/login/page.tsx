@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
@@ -24,7 +24,6 @@ const BULLETS = [
 ];
 
 function LoginInner() {
-  const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
   const denied = params.get("denied");
@@ -46,8 +45,10 @@ function LoginInner() {
       data: { user },
     } = await sb.auth.getUser();
     const role = (user?.app_metadata?.role as string) || "customer";
-    router.push(next || roleHome(role));
-    router.refresh();
+    // Hard navigation so the freshly-set auth cookie reaches the server on the
+    // next request (a client router.push can race the cookie and hang the
+    // middleware until a manual reload).
+    window.location.assign(next || roleHome(role));
   }
 
   return (

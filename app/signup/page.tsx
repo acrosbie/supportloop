@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 
 export default function SignupPage() {
-  const router = useRouter();
   const [company, setCompany] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -32,8 +30,7 @@ export default function SignupPage() {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message);
       toast.success("Workspace created");
-      router.push("/onboarding");
-      router.refresh();
+      window.location.assign("/onboarding");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign up failed");
       setBusy(false);
