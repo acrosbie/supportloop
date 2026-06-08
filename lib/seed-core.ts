@@ -446,6 +446,83 @@ function buildHeroTicket(): { ticket: GenTicket; messages: unknown[] } {
   return { ticket, messages };
 }
 
+// ---------------------------------------------------------------------------
+// Customers + accounts (0007) — give tickets a real requester identity so the
+// agent console + agentic tools have someone concrete to personalize around.
+// ---------------------------------------------------------------------------
+type AccountSeed = { name: string; plan: string; mrr: number; seats: number; status: string; health: string; since: string };
+type CustomerSeed = { name: string; email: string; title: string | null; company: string };
+
+const ORBIT_ACCOUNTS: AccountSeed[] = [
+  { name: "Northwind Labs", plan: "Business", mrr: 1200, seats: 40, status: "active", health: "healthy", since: "2023-02-11" },
+  { name: "Acme Corp", plan: "Enterprise", mrr: 4800, seats: 150, status: "active", health: "at_risk", since: "2021-09-03" },
+  { name: "Brightwave", plan: "Pro", mrr: 180, seats: 12, status: "active", health: "healthy", since: "2024-06-20" },
+  { name: "Lumen Studio", plan: "Pro", mrr: 90, seats: 6, status: "active", health: "healthy", since: "2024-11-02" },
+  { name: "Vertex Health", plan: "Business", mrr: 2100, seats: 65, status: "active", health: "healthy", since: "2022-04-18" },
+  { name: "Independent", plan: "Free", mrr: 0, seats: 1, status: "trial", health: "healthy", since: "2025-12-01" },
+];
+const ORBIT_CUSTOMERS: CustomerSeed[] = [
+  { name: "Sarah Chen", email: "sarah.chen@northwindlabs.com", title: "Head of Operations", company: "Northwind Labs" },
+  { name: "Tom Becker", email: "tom.becker@northwindlabs.com", title: "Engineering Lead", company: "Northwind Labs" },
+  { name: "Marcus Reed", email: "marcus@acmecorp.com", title: "IT Administrator", company: "Acme Corp" },
+  { name: "Aisha Khan", email: "aisha@acmecorp.com", title: "Recruiting Lead", company: "Acme Corp" },
+  { name: "Priya Nair", email: "priya.nair@brightwave.io", title: "Office Manager", company: "Brightwave" },
+  { name: "Diego Alvarez", email: "diego@lumenstudio.co", title: "Producer", company: "Lumen Studio" },
+  { name: "Emma Thompson", email: "emma.t@vertexhealth.com", title: "Care Coordinator", company: "Vertex Health" },
+  { name: "Jordan Blake", email: "jordan.blake@gmail.com", title: null, company: "Independent" },
+  { name: "Alex Rivera", email: "customer@supportloop.demo", title: "Team Lead", company: "Brightwave" },
+];
+
+const SL_ACCOUNTS: AccountSeed[] = [
+  { name: "Meridian Retail", plan: "Business", mrr: 990, seats: 30, status: "active", health: "healthy", since: "2025-01-15" },
+  { name: "Foundry SaaS", plan: "Pro", mrr: 240, seats: 10, status: "active", health: "healthy", since: "2025-03-20" },
+  { name: "Cobalt Fintech", plan: "Enterprise", mrr: 3600, seats: 80, status: "active", health: "at_risk", since: "2024-10-05" },
+];
+const SL_CUSTOMERS: CustomerSeed[] = [
+  { name: "Riya Patel", email: "riya@meridianretail.com", title: "CX Manager", company: "Meridian Retail" },
+  { name: "Ben Carter", email: "ben@meridianretail.com", title: "Support Agent", company: "Meridian Retail" },
+  { name: "Sam Okonkwo", email: "sam@foundrysaas.com", title: "Support Lead", company: "Foundry SaaS" },
+  { name: "Lena Fischer", email: "lena@cobaltfintech.com", title: "Head of Support", company: "Cobalt Fintech" },
+];
+
+/** Seed accounts + customers for an org. Returns email→customerId, or null if
+ *  the customer model (migration 0007) isn't applied yet. */
+async function seedCustomerModel(
+  sb: SupabaseClient,
+  orgId: string,
+  accounts: AccountSeed[],
+  customers: CustomerSeed[]
+): Promise<Map<string, string> | null> {
+  const { error: probe } = await sb.from("customers").select("id").limit(1);
+  if (probe) return null; // 0007 not applied — seed still works, just no linkage
+  await sb.from("customers").delete().eq("org_id", orgId);
+  await sb.from("accounts").delete().eq("org_id", orgId);
+  const accountRows = accounts.map((a) => ({ id: randomUUID(), org_id: orgId, ...a }));
+  await insertAll(sb, "accounts", accountRows);
+  const acctIdByName = new Map(accountRows.map((a) => [a.name, a.id]));
+  const customerRows = customers.map((c) => ({
+    id: randomUUID(),
+    org_id: orgId,
+    account_id: acctIdByName.get(c.company) ?? null,
+    email: c.email,
+    name: c.name,
+    title: c.title,
+  }));
+  await insertAll(sb, "customers", customerRows);
+  return new Map(customerRows.map((c) => [c.email, c.id]));
+}
+
+/** Give each ticket that lacks one a requester email, round-robin across the
+ *  roster (so the spread is even and lifetime-ticket counts are believable). */
+function assignCustomerEmails(tickets: GenTicket[], customers: CustomerSeed[]): void {
+  let i = 0;
+  for (const t of tickets) {
+    if (t.requester_email) continue;
+    t.requester_email = customers[i % customers.length].email;
+    i++;
+  }
+}
+
 /**
  * Ensure the three one-click demo accounts exist with the right role + password.
  * Idempotent — safe to run on every seed/reset. Returns role -> user id.
@@ -535,19 +612,31 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   }));
   await insertAll(sb, "kb_articles", kbRows);
 
-  // 3. Tickets + messages + events (generated) + the hero ticket.
+  // 3. Customers + accounts, then tickets/messages/events + the hero ticket.
+  const emailToCustomerId = await seedCustomerModel(sb, orgId, ORBIT_ACCOUNTS, ORBIT_CUSTOMERS);
   const { tickets, messages, events } = generateTickets(TICKET_TEMPLATES, TARGET_TICKETS);
   const hero = buildHeroTicket();
   hero.ticket.requester_id = demoIds.customer ?? null;
   hero.ticket.requester_email = "customer@supportloop.demo";
   tickets.push(hero.ticket);
   for (const m of hero.messages) messages.push(m);
+  assignCustomerEmails(tickets, ORBIT_CUSTOMERS);
 
   // Case-management enrichment: priority, tags, SLA, first response, assignment.
   const agentId = demoIds.agent ?? null;
   enrichTickets(tickets, agentId);
 
-  await insertAll(sb, "tickets", tickets.map((t) => ({ ...t, org_id: orgId })));
+  await insertAll(
+    sb,
+    "tickets",
+    tickets.map((t) => ({
+      ...t,
+      org_id: orgId,
+      ...(emailToCustomerId
+        ? { customer_id: t.requester_email ? emailToCustomerId.get(t.requester_email) ?? null : null }
+        : {}),
+    }))
+  );
   await embedResolvedTickets(sb, orgId, tickets);
   await insertAll(sb, "ticket_messages", messages.map((m) => ({ ...(m as Record<string, unknown>), org_id: orgId })));
   await insertAll(sb, "events", events.map((e) => ({ ...(e as Record<string, unknown>), org_id: orgId })));
@@ -648,10 +737,22 @@ async function seedSupportLoopOrg(sb: SupabaseClient): Promise<{ kb_articles: nu
   }));
   await insertAll(sb, "kb_articles", kbRows);
 
-  // Tickets (generated from SupportLoop-specific templates) + enrichment.
+  // Customers + accounts, then tickets (SupportLoop-specific templates) + enrichment.
+  const emailToCustomerId = await seedCustomerModel(sb, orgId, SL_ACCOUNTS, SL_CUSTOMERS);
   const { tickets, messages, events } = generateTickets(SUPPORTLOOP_TEMPLATES, 60);
+  assignCustomerEmails(tickets, SL_CUSTOMERS);
   enrichTickets(tickets, agentId);
-  await insertAll(sb, "tickets", tickets.map((t) => ({ ...t, org_id: orgId })));
+  await insertAll(
+    sb,
+    "tickets",
+    tickets.map((t) => ({
+      ...t,
+      org_id: orgId,
+      ...(emailToCustomerId
+        ? { customer_id: t.requester_email ? emailToCustomerId.get(t.requester_email) ?? null : null }
+        : {}),
+    }))
+  );
   await embedResolvedTickets(sb, orgId, tickets);
   await insertAll(sb, "ticket_messages", messages.map((m) => ({ ...(m as Record<string, unknown>), org_id: orgId })));
   await insertAll(sb, "events", events.map((e) => ({ ...(e as Record<string, unknown>), org_id: orgId })));

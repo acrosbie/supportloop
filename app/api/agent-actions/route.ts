@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getStaffOrgId } from "@/lib/auth";
-import { getTicket, logAiTrace } from "@/lib/data";
+import { getTicket, logAiTrace, getCustomerContext } from "@/lib/data";
 import { MODEL_GENERATE, anthropic, textOf } from "@/lib/anthropic";
 import { AGENT_TOOLS, lookupAccount, recentCharges } from "@/lib/agent-tools";
 
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
   if (!ticket) return Response.json({ ok: false, error: "Ticket not found" }, { status: 404 });
 
   const email = ticket.requester_email || "customer@orbit.demo";
+  const ctx = await getCustomerContext(orgId, ticketId);
   const steps: { tool: string; input: unknown; output: unknown }[] = [];
   let proposed: { tool: string; input: Record<string, unknown> } | null = null;
 
@@ -62,7 +63,21 @@ export async function POST(req: NextRequest) {
           if (block.type !== "tool_use") continue;
           const input = block.input as Record<string, unknown>;
           let output: unknown;
-          if (block.name === "lookup_account") output = lookupAccount(String(input.email || email));
+          if (block.name === "lookup_account")
+            output = ctx
+              ? {
+                  name: ctx.customer.name,
+                  email: ctx.customer.email,
+                  title: ctx.customer.title,
+                  company: ctx.account?.name ?? "—",
+                  plan: ctx.account?.plan ?? "Free",
+                  account_status: ctx.account?.status ?? "active",
+                  account_health: ctx.account?.health ?? "healthy",
+                  member_since: ctx.account?.since ?? null,
+                  lifetime_tickets: ctx.lifetimeTickets,
+                  avg_csat: ctx.avgCsat,
+                }
+              : lookupAccount(String(input.email || email));
           else if (block.name === "recent_charges") output = recentCharges(String(input.email || email));
           else if (block.name === "issue_refund") {
             proposed = { tool: "issue_refund", input };

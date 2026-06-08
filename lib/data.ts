@@ -900,3 +900,74 @@ export async function getAiActivity(orgId: string, limit = 60): Promise<AiActivi
   const groundedRate = grounding.length ? grounding.filter((r) => r.grounded).length / grounding.length : null;
   return { rows: rows.slice(0, limit), totalCalls, totalCost, avgLatency, groundedRate };
 }
+
+// ---------------------------------------------------------------------------
+// Customer + account context (0007) — for personalization
+// ---------------------------------------------------------------------------
+export interface CustomerContext {
+  customer: { id: string; name: string; email: string; title: string | null };
+  account: {
+    name: string;
+    plan: string;
+    mrr: number;
+    seats: number;
+    status: string;
+    health: string;
+    since: string | null;
+  } | null;
+  lifetimeTickets: number;
+  avgCsat: number | null;
+}
+
+/** The customer + account behind a ticket, with their lifetime stats. Tolerant:
+ *  returns null if the ticket has no linked customer or 0007 isn't applied. */
+export async function getCustomerContext(orgId: string, ticketId: string): Promise<CustomerContext | null> {
+  try {
+    const sb = supabaseAdmin();
+    const { data: t } = await sb.from("tickets").select("customer_id").eq("id", ticketId).eq("org_id", orgId).maybeSingle();
+    const customerId = (t?.customer_id as string | null | undefined) ?? null;
+    if (!customerId) return null;
+
+    const { data: c } = await sb
+      .from("customers")
+      .select("id,name,email,title,account_id")
+      .eq("id", customerId)
+      .eq("org_id", orgId)
+      .maybeSingle();
+    if (!c) return null;
+
+    let account: CustomerContext["account"] = null;
+    if (c.account_id) {
+      const { data: a } = await sb
+        .from("accounts")
+        .select("name,plan,mrr,seats,status,health,since")
+        .eq("id", c.account_id as string)
+        .maybeSingle();
+      if (a) {
+        account = {
+          name: a.name as string,
+          plan: a.plan as string,
+          mrr: Number(a.mrr ?? 0),
+          seats: Number(a.seats ?? 0),
+          status: a.status as string,
+          health: a.health as string,
+          since: (a.since as string | null) ?? null,
+        };
+      }
+    }
+
+    const { data: hist } = await sb.from("tickets").select("csat").eq("org_id", orgId).eq("customer_id", customerId);
+    const lifetimeTickets = hist?.length ?? 0;
+    const csats = (hist ?? []).map((r) => r.csat as number | null).filter((x): x is number => x != null);
+    const avgCsat = csats.length ? csats.reduce((s, x) => s + x, 0) / csats.length : null;
+
+    return {
+      customer: { id: c.id as string, name: c.name as string, email: c.email as string, title: (c.title as string | null) ?? null },
+      account,
+      lifetimeTickets,
+      avgCsat,
+    };
+  } catch {
+    return null;
+  }
+}

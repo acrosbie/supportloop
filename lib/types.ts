@@ -36,6 +36,7 @@ export interface Ticket {
   is_hero: boolean;
   requester_id: string | null;
   requester_email: string | null;
+  customer_id: string | null;
   priority: string;
   assignee_id: string | null;
   tags: string[];
@@ -43,6 +44,29 @@ export interface Ticket {
   first_response_at: string | null;
   created_at: string;
   resolved_at: string | null;
+}
+
+export interface Account {
+  id: string;
+  org_id: string;
+  name: string;
+  plan: string;
+  mrr: number;
+  seats: number;
+  status: string;
+  health: string;
+  since: string | null;
+  created_at: string;
+}
+
+export interface Customer {
+  id: string;
+  org_id: string;
+  account_id: string | null;
+  email: string;
+  name: string;
+  title: string | null;
+  created_at: string;
 }
 
 export type MessageRole = "customer" | "agent" | "ai";

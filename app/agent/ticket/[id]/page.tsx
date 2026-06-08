@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTicket, getTicketMessages, getAgents, getCannedResponses, getSimilarTickets } from "@/lib/data";
+import { getTicket, getTicketMessages, getAgents, getCannedResponses, getSimilarTickets, getCustomerContext } from "@/lib/data";
 import { getAuth, NO_ORG } from "@/lib/auth";
 import TriagePanel from "@/components/agent/TriagePanel";
 import TicketProperties from "@/components/agent/TicketProperties";
 import ReplyComposer from "@/components/agent/ReplyComposer";
 import Copilot from "@/components/agent/Copilot";
 import AgentActions from "@/components/agent/AgentActions";
+import CustomerPanel from "@/components/agent/CustomerPanel";
 import LiveChatRoom from "@/components/LiveChatRoom";
 import { Badge, PriorityPill, StatusPill } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -20,11 +21,12 @@ export default async function TicketDetail({ params }: { params: { id: string } 
   const orgId = me?.orgId ?? NO_ORG;
   const ticket = await getTicket(orgId, params.id);
   if (!ticket) notFound();
-  const [messages, agents, canned, similar] = await Promise.all([
+  const [messages, agents, canned, similar, customer] = await Promise.all([
     getTicketMessages(orgId, params.id),
     getAgents(orgId),
     getCannedResponses(orgId),
     getSimilarTickets(orgId, params.id),
+    getCustomerContext(orgId, params.id),
   ]);
   const resolved = ticket.status === "resolved" || ticket.status === "deflected";
   const requester = ticket.requester_email || "anonymous";
@@ -104,41 +106,15 @@ export default async function TicketDetail({ params }: { params: { id: string } 
 
         {/* Right rail */}
         <div className="space-y-4">
-          {/* Requester */}
-          <div className="rounded-xl border border-border bg-surface p-4">
-            <div className="flex items-center gap-3">
-              <Avatar name={requester} className="h-10 w-10 text-sm" />
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium">{requester}</div>
-                <div className="text-xs text-muted">Requester</div>
-              </div>
-            </div>
-            <div className="mt-3 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-muted">Channel</span>
-                <span className="flex items-center gap-1">
-                  <ChannelIcon channel={ticket.channel} className="h-3 w-3" />
-                  {channelLabel(ticket.channel)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted">Opened</span>
-                <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
-              </div>
-              {ticket.first_response_at && (
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">First reply</span>
-                  <span>{new Date(ticket.first_response_at).toLocaleDateString()}</span>
-                </div>
-              )}
-              {ticket.sla_due_at && !resolved && (
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">SLA due</span>
-                  <span>{new Date(ticket.sla_due_at).toLocaleString()}</span>
-                </div>
-              )}
-            </div>
-          </div>
+          <CustomerPanel
+            ctx={customer}
+            fallbackEmail={requester}
+            channel={ticket.channel}
+            createdAt={ticket.created_at}
+            firstResponseAt={ticket.first_response_at}
+            slaDueAt={ticket.sla_due_at}
+            resolved={resolved}
+          />
 
           <Copilot
             ticketId={ticket.id}
