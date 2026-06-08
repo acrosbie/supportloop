@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTicket, getTicketMessages, getAgents, getCannedResponses, getSimilarTickets, getCustomerContext } from "@/lib/data";
+import {
+  getTicket,
+  getTicketMessages,
+  getAgents,
+  getCannedResponses,
+  getSimilarTickets,
+  getCustomerContext,
+  getFieldsForRecord,
+} from "@/lib/data";
 import { getAuth, NO_ORG } from "@/lib/auth";
 import TriagePanel from "@/components/agent/TriagePanel";
 import TicketProperties from "@/components/agent/TicketProperties";
@@ -8,6 +16,7 @@ import ReplyComposer from "@/components/agent/ReplyComposer";
 import Copilot from "@/components/agent/Copilot";
 import AgentActions from "@/components/agent/AgentActions";
 import CustomerPanel from "@/components/agent/CustomerPanel";
+import FieldsEditor from "@/components/FieldsEditor";
 import LiveChatRoom from "@/components/LiveChatRoom";
 import { Badge, PriorityPill, StatusPill } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -21,12 +30,13 @@ export default async function TicketDetail({ params }: { params: { id: string } 
   const orgId = me?.orgId ?? NO_ORG;
   const ticket = await getTicket(orgId, params.id);
   if (!ticket) notFound();
-  const [messages, agents, canned, similar, customer] = await Promise.all([
+  const [messages, agents, canned, similar, customer, ticketFields] = await Promise.all([
     getTicketMessages(orgId, params.id),
     getAgents(orgId),
     getCannedResponses(orgId),
     getSimilarTickets(orgId, params.id),
     getCustomerContext(orgId, params.id),
+    getFieldsForRecord(orgId, "ticket", params.id),
   ]);
   const resolved = ticket.status === "resolved" || ticket.status === "deflected";
   const requester = ticket.requester_email || "anonymous";
@@ -134,6 +144,14 @@ export default async function TicketDetail({ params }: { params: { id: string } 
             agents={agents.map((a) => ({ id: a.id, name: a.display_name || "Agent" }))}
             meId={me?.id || ""}
           />
+          {ticketFields.fields.length > 0 && (
+            <div className="rounded-xl border border-border bg-surface p-4">
+              <div className="text-xs font-medium uppercase tracking-wide text-muted">Fields</div>
+              <div className="mt-3">
+                <FieldsEditor entity="ticket" id={ticket.id} fields={ticketFields.fields} initial={ticketFields.initial} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

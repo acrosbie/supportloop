@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { StatusPill } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
+import FieldsEditor, { type EditableField } from "@/components/FieldsEditor";
 
 interface Article {
   id: string;
@@ -12,9 +13,10 @@ interface Article {
   body: string;
   category: string;
   status: string;
+  custom_fields: Record<string, unknown>;
 }
 
-export default function AdminKb({ articles }: { articles: Article[] }) {
+export default function AdminKb({ articles, docFields }: { articles: Article[]; docFields: EditableField[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState({ title: "", body: "", category: "" });
@@ -174,6 +176,11 @@ export default function AdminKb({ articles }: { articles: Article[] }) {
                   Delete
                 </Button>
               </div>
+              {docFields.length > 0 && (
+                <div className="mt-3 border-t border-border pt-3">
+                  <FieldsEditor entity="doc" id={a.id} fields={docFields} initial={a.custom_fields} />
+                </div>
+              )}
             </>
           )}
         </div>

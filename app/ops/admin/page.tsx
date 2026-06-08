@@ -70,7 +70,17 @@ export default async function AdminPage() {
         <h2 className="text-xs font-medium uppercase tracking-widest text-muted">Knowledge base ({articles.length})</h2>
         <div className="mt-3">
           <AdminKb
-            articles={articles.map((a) => ({ id: a.id, title: a.title, body: a.body, category: a.category, status: a.status }))}
+            articles={articles.map((a) => ({
+              id: a.id,
+              title: a.title,
+              body: a.body,
+              category: a.category,
+              status: a.status,
+              custom_fields: a.custom_fields ?? {},
+            }))}
+            docFields={fieldDefs
+              .filter((d) => d.entity === "doc")
+              .map((d) => ({ key: d.key, label: d.label, type: d.type, options: d.options, custom: true }))}
           />
         </div>
       </section>
