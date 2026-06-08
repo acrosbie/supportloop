@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAuth, NO_ORG } from "@/lib/auth";
-import { getCustomerProfile } from "@/lib/data";
+import { getCustomerProfile, getFieldsForRecord } from "@/lib/data";
 import TicketList from "@/components/agent/TicketList";
+import FieldsEditor from "@/components/FieldsEditor";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { planTone } from "@/lib/utils";
@@ -11,9 +12,11 @@ export const dynamic = "force-dynamic";
 
 export default async function CustomerPage({ params }: { params: { id: string } }) {
   const me = await getAuth();
-  const profile = await getCustomerProfile(me?.orgId ?? NO_ORG, params.id);
+  const orgId = me?.orgId ?? NO_ORG;
+  const profile = await getCustomerProfile(orgId, params.id);
   if (!profile) notFound();
   const { customer, account, tickets, avgCsat } = profile;
+  const { fields, initial } = await getFieldsForRecord(orgId, "customer", customer.id);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
@@ -39,6 +42,11 @@ export default async function CustomerPage({ params }: { params: { id: string } 
         {account && <Badge tone={planTone(account.plan)}>{account.plan}</Badge>}
         <span>· {tickets.length} tickets</span>
         <span>· avg CSAT {avgCsat != null ? avgCsat.toFixed(1) : "—"}</span>
+      </div>
+
+      <h2 className="mt-8 text-sm font-medium">Details</h2>
+      <div className="mt-3 rounded-xl border border-border bg-surface p-4">
+        <FieldsEditor entity="customer" id={customer.id} fields={fields} initial={initial} />
       </div>
 
       <h2 className="mt-8 text-sm font-medium">Tickets ({tickets.length})</h2>

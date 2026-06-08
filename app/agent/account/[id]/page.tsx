@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAuth, NO_ORG } from "@/lib/auth";
-import { getAccountProfile } from "@/lib/data";
+import { getAccountProfile, getFieldsForRecord } from "@/lib/data";
 import TicketList from "@/components/agent/TicketList";
+import FieldsEditor from "@/components/FieldsEditor";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { planTone } from "@/lib/utils";
@@ -20,9 +21,11 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 export default async function AccountPage({ params }: { params: { id: string } }) {
   const me = await getAuth();
-  const profile = await getAccountProfile(me?.orgId ?? NO_ORG, params.id);
+  const orgId = me?.orgId ?? NO_ORG;
+  const profile = await getAccountProfile(orgId, params.id);
   if (!profile) notFound();
   const { account, customers, tickets } = profile;
+  const { fields, initial } = await getFieldsForRecord(orgId, "account", account.id);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
@@ -46,6 +49,11 @@ export default async function AccountPage({ params }: { params: { id: string } }
         <Stat label="Seats" value={String(account.seats)} />
         <Stat label="People" value={String(customers.length)} />
         <Stat label="Tickets" value={String(tickets.length)} />
+      </div>
+
+      <h2 className="mt-8 text-sm font-medium">Details</h2>
+      <div className="mt-3 rounded-xl border border-border bg-surface p-4">
+        <FieldsEditor entity="account" id={account.id} fields={fields} initial={initial} />
       </div>
 
       <h2 className="mt-8 text-sm font-medium">People ({customers.length})</h2>

@@ -19,6 +19,7 @@ import type {
   CannedResponse,
   CustomFieldDef,
   FieldEntity,
+  FieldType,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -1274,4 +1275,27 @@ export async function updateEntityFields(
   if (!Object.keys(patch).length) return;
   const { error } = await sb.from(table).update(patch).eq("id", id).eq("org_id", orgId);
   if (error) throw new Error(`updateEntityFields: ${error.message}`);
+}
+
+export interface EditableFieldSpec {
+  key: string;
+  label: string;
+  type: FieldType;
+  options?: string[];
+  custom?: boolean;
+}
+
+/** Combined standard + custom fields (with current values) for the editor. */
+export async function getFieldsForRecord(
+  orgId: string,
+  entity: FieldEntity,
+  id: string
+): Promise<{ fields: EditableFieldSpec[]; initial: Record<string, unknown> }> {
+  const [defs, ef] = await Promise.all([getCustomFieldDefs(orgId, entity), getEntityFields(orgId, entity, id)]);
+  const fields: EditableFieldSpec[] = [
+    ...STANDARD_FIELDS[entity].map((f) => ({ key: f.key, label: f.label, type: f.type })),
+    ...defs.map((d) => ({ key: d.key, label: d.label, type: d.type, options: d.options, custom: true })),
+  ];
+  const initial = { ...(ef?.standard ?? {}), ...(ef?.custom ?? {}) };
+  return { fields, initial };
 }
