@@ -450,39 +450,75 @@ function buildHeroTicket(): { ticket: GenTicket; messages: unknown[] } {
 // Customers + accounts (0007) — give tickets a real requester identity so the
 // agent console + agentic tools have someone concrete to personalize around.
 // ---------------------------------------------------------------------------
-type AccountSeed = { name: string; plan: string; mrr: number; seats: number; status: string; health: string; since: string };
-type CustomerSeed = { name: string; email: string; title: string | null; company: string };
+type AccountSeed = {
+  name: string;
+  plan: string;
+  mrr: number;
+  seats: number;
+  status: string;
+  health: string;
+  since: string;
+  domain?: string;
+  industry?: string;
+  company_size?: string;
+  region?: string;
+  arr?: number;
+  renewal_date?: string;
+  owner?: string;
+  custom_fields?: Record<string, unknown>;
+};
+type CustomerSeed = {
+  name: string;
+  email: string;
+  title: string | null;
+  company: string;
+  phone?: string;
+  location?: string;
+  timezone?: string;
+  locale?: string;
+  custom_fields?: Record<string, unknown>;
+};
+type FieldDefSeed = { entity: string; key: string; label: string; type: string; options?: string[] };
+
+const FIELD_DEFS: FieldDefSeed[] = [
+  { entity: "customer", key: "lifecycle_stage", label: "Lifecycle stage", type: "select", options: ["Lead", "Trial", "Active", "Churned"] },
+  { entity: "customer", key: "nps", label: "NPS score", type: "number" },
+  { entity: "account", key: "segment", label: "Segment", type: "select", options: ["SMB", "Mid-Market", "Enterprise"] },
+  { entity: "account", key: "csm_notes", label: "CSM notes", type: "text" },
+  { entity: "ticket", key: "affected_feature", label: "Affected feature", type: "select", options: ["Meetings", "Recordings", "Billing", "SSO", "Other"] },
+  { entity: "doc", key: "review_status", label: "Review status", type: "select", options: ["Up to date", "Needs review", "Outdated"] },
+];
 
 const ORBIT_ACCOUNTS: AccountSeed[] = [
-  { name: "Northwind Labs", plan: "Business", mrr: 1200, seats: 40, status: "active", health: "healthy", since: "2023-02-11" },
-  { name: "Acme Corp", plan: "Enterprise", mrr: 4800, seats: 150, status: "active", health: "at_risk", since: "2021-09-03" },
-  { name: "Brightwave", plan: "Pro", mrr: 180, seats: 12, status: "active", health: "healthy", since: "2024-06-20" },
-  { name: "Lumen Studio", plan: "Pro", mrr: 90, seats: 6, status: "active", health: "healthy", since: "2024-11-02" },
-  { name: "Vertex Health", plan: "Business", mrr: 2100, seats: 65, status: "active", health: "healthy", since: "2022-04-18" },
-  { name: "Independent", plan: "Free", mrr: 0, seats: 1, status: "trial", health: "healthy", since: "2025-12-01" },
+  { name: "Northwind Labs", plan: "Business", mrr: 1200, seats: 40, status: "active", health: "healthy", since: "2023-02-11", domain: "northwindlabs.com", industry: "Software", company_size: "51–200", region: "North America", arr: 14400, renewal_date: "2026-02-11", owner: "Dana Ruiz", custom_fields: { segment: "Mid-Market", csm_notes: "Expansion candidate — evaluating more seats in Q3." } },
+  { name: "Acme Corp", plan: "Enterprise", mrr: 4800, seats: 150, status: "active", health: "at_risk", since: "2021-09-03", domain: "acmecorp.com", industry: "Manufacturing", company_size: "1000+", region: "North America", arr: 57600, renewal_date: "2026-09-03", owner: "Dana Ruiz", custom_fields: { segment: "Enterprise", csm_notes: "Two escalations this quarter; new exec sponsor." } },
+  { name: "Brightwave", plan: "Pro", mrr: 180, seats: 12, status: "active", health: "healthy", since: "2024-06-20", domain: "brightwave.io", industry: "Marketing", company_size: "11–50", region: "EMEA", arr: 2160, renewal_date: "2026-06-20", owner: "Theo Park", custom_fields: { segment: "SMB" } },
+  { name: "Lumen Studio", plan: "Pro", mrr: 90, seats: 6, status: "active", health: "healthy", since: "2024-11-02", domain: "lumenstudio.co", industry: "Media", company_size: "1–10", region: "North America", arr: 1080, renewal_date: "2026-11-02", owner: "Theo Park", custom_fields: { segment: "SMB" } },
+  { name: "Vertex Health", plan: "Business", mrr: 2100, seats: 65, status: "active", health: "healthy", since: "2022-04-18", domain: "vertexhealth.com", industry: "Healthcare", company_size: "201–500", region: "North America", arr: 25200, renewal_date: "2026-04-18", owner: "Dana Ruiz", custom_fields: { segment: "Mid-Market" } },
+  { name: "Independent", plan: "Free", mrr: 0, seats: 1, status: "trial", health: "healthy", since: "2025-12-01", industry: "Other", company_size: "1–10", region: "Global", arr: 0, owner: "—", custom_fields: { segment: "SMB" } },
 ];
 const ORBIT_CUSTOMERS: CustomerSeed[] = [
-  { name: "Sarah Chen", email: "sarah.chen@northwindlabs.com", title: "Head of Operations", company: "Northwind Labs" },
-  { name: "Tom Becker", email: "tom.becker@northwindlabs.com", title: "Engineering Lead", company: "Northwind Labs" },
-  { name: "Marcus Reed", email: "marcus@acmecorp.com", title: "IT Administrator", company: "Acme Corp" },
-  { name: "Aisha Khan", email: "aisha@acmecorp.com", title: "Recruiting Lead", company: "Acme Corp" },
-  { name: "Priya Nair", email: "priya.nair@brightwave.io", title: "Office Manager", company: "Brightwave" },
-  { name: "Diego Alvarez", email: "diego@lumenstudio.co", title: "Producer", company: "Lumen Studio" },
-  { name: "Emma Thompson", email: "emma.t@vertexhealth.com", title: "Care Coordinator", company: "Vertex Health" },
-  { name: "Jordan Blake", email: "jordan.blake@gmail.com", title: null, company: "Independent" },
-  { name: "Alex Rivera", email: "customer@supportloop.demo", title: "Team Lead", company: "Brightwave" },
+  { name: "Sarah Chen", email: "sarah.chen@northwindlabs.com", title: "Head of Operations", company: "Northwind Labs", phone: "+1 415 555 0182", location: "San Francisco, US", timezone: "America/Los_Angeles", locale: "en-US", custom_fields: { lifecycle_stage: "Active", nps: 9 } },
+  { name: "Tom Becker", email: "tom.becker@northwindlabs.com", title: "Engineering Lead", company: "Northwind Labs", phone: "+1 415 555 0143", location: "San Francisco, US", timezone: "America/Los_Angeles", locale: "en-US", custom_fields: { lifecycle_stage: "Active" } },
+  { name: "Marcus Reed", email: "marcus@acmecorp.com", title: "IT Administrator", company: "Acme Corp", phone: "+1 212 555 0199", location: "New York, US", timezone: "America/New_York", locale: "en-US", custom_fields: { lifecycle_stage: "Active", nps: 6 } },
+  { name: "Aisha Khan", email: "aisha@acmecorp.com", title: "Recruiting Lead", company: "Acme Corp", phone: "+1 212 555 0167", location: "New York, US", timezone: "America/New_York", locale: "en-US" },
+  { name: "Priya Nair", email: "priya.nair@brightwave.io", title: "Office Manager", company: "Brightwave", phone: "+44 20 7946 0321", location: "London, UK", timezone: "Europe/London", locale: "en-GB", custom_fields: { lifecycle_stage: "Active", nps: 10 } },
+  { name: "Diego Alvarez", email: "diego@lumenstudio.co", title: "Producer", company: "Lumen Studio", phone: "+1 310 555 0111", location: "Los Angeles, US", timezone: "America/Los_Angeles", locale: "en-US" },
+  { name: "Emma Thompson", email: "emma.t@vertexhealth.com", title: "Care Coordinator", company: "Vertex Health", phone: "+1 617 555 0188", location: "Boston, US", timezone: "America/New_York", locale: "en-US", custom_fields: { lifecycle_stage: "Active" } },
+  { name: "Jordan Blake", email: "jordan.blake@gmail.com", title: null, company: "Independent", phone: "+1 305 555 0150", location: "Miami, US", timezone: "America/New_York", locale: "en-US", custom_fields: { lifecycle_stage: "Trial", nps: 7 } },
+  { name: "Alex Rivera", email: "customer@supportloop.demo", title: "Team Lead", company: "Brightwave", phone: "+44 20 7946 0654", location: "Manchester, UK", timezone: "Europe/London", locale: "en-GB", custom_fields: { lifecycle_stage: "Active" } },
 ];
 
 const SL_ACCOUNTS: AccountSeed[] = [
-  { name: "Meridian Retail", plan: "Business", mrr: 990, seats: 30, status: "active", health: "healthy", since: "2025-01-15" },
-  { name: "Foundry SaaS", plan: "Pro", mrr: 240, seats: 10, status: "active", health: "healthy", since: "2025-03-20" },
-  { name: "Cobalt Fintech", plan: "Enterprise", mrr: 3600, seats: 80, status: "active", health: "at_risk", since: "2024-10-05" },
+  { name: "Meridian Retail", plan: "Business", mrr: 990, seats: 30, status: "active", health: "healthy", since: "2025-01-15", domain: "meridianretail.com", industry: "Retail", company_size: "201–500", region: "North America", arr: 11880, renewal_date: "2026-01-15", owner: "Sofia Marsh", custom_fields: { segment: "Mid-Market" } },
+  { name: "Foundry SaaS", plan: "Pro", mrr: 240, seats: 10, status: "active", health: "healthy", since: "2025-03-20", domain: "foundrysaas.com", industry: "Software", company_size: "11–50", region: "EMEA", arr: 2880, renewal_date: "2026-03-20", owner: "Sofia Marsh", custom_fields: { segment: "SMB" } },
+  { name: "Cobalt Fintech", plan: "Enterprise", mrr: 3600, seats: 80, status: "active", health: "at_risk", since: "2024-10-05", domain: "cobaltfintech.com", industry: "Financial Services", company_size: "501–1000", region: "North America", arr: 43200, renewal_date: "2026-10-05", owner: "Sofia Marsh", custom_fields: { segment: "Enterprise", csm_notes: "Compliance review in progress." } },
 ];
 const SL_CUSTOMERS: CustomerSeed[] = [
-  { name: "Riya Patel", email: "riya@meridianretail.com", title: "CX Manager", company: "Meridian Retail" },
-  { name: "Ben Carter", email: "ben@meridianretail.com", title: "Support Agent", company: "Meridian Retail" },
-  { name: "Sam Okonkwo", email: "sam@foundrysaas.com", title: "Support Lead", company: "Foundry SaaS" },
-  { name: "Lena Fischer", email: "lena@cobaltfintech.com", title: "Head of Support", company: "Cobalt Fintech" },
+  { name: "Riya Patel", email: "riya@meridianretail.com", title: "CX Manager", company: "Meridian Retail", phone: "+1 312 555 0120", location: "Chicago, US", timezone: "America/Chicago", locale: "en-US", custom_fields: { lifecycle_stage: "Active", nps: 9 } },
+  { name: "Ben Carter", email: "ben@meridianretail.com", title: "Support Agent", company: "Meridian Retail", phone: "+1 312 555 0166", location: "Chicago, US", timezone: "America/Chicago", locale: "en-US" },
+  { name: "Sam Okonkwo", email: "sam@foundrysaas.com", title: "Support Lead", company: "Foundry SaaS", phone: "+44 161 555 0177", location: "Manchester, UK", timezone: "Europe/London", locale: "en-GB", custom_fields: { lifecycle_stage: "Active" } },
+  { name: "Lena Fischer", email: "lena@cobaltfintech.com", title: "Head of Support", company: "Cobalt Fintech", phone: "+49 30 5550 1234", location: "Berlin, DE", timezone: "Europe/Berlin", locale: "de-DE", custom_fields: { lifecycle_stage: "Active", nps: 5 } },
 ];
 
 /** Seed accounts + customers for an org. Returns email→customerId, or null if
@@ -493,21 +529,36 @@ async function seedCustomerModel(
   accounts: AccountSeed[],
   customers: CustomerSeed[]
 ): Promise<Map<string, string> | null> {
-  const { error: probe } = await sb.from("customers").select("id").limit(1);
-  if (probe) return null; // 0007 not applied — seed still works, just no linkage
+  // Gate on 0008 (custom_field_defs), which implies 0007's customers/accounts.
+  const { error: probe } = await sb.from("custom_field_defs").select("id").limit(1);
+  if (probe) return null; // customer model + custom fields not applied — seed still runs
   await sb.from("customers").delete().eq("org_id", orgId);
   await sb.from("accounts").delete().eq("org_id", orgId);
+  await sb.from("custom_field_defs").delete().eq("org_id", orgId);
+
+  await insertAll(
+    sb,
+    "custom_field_defs",
+    FIELD_DEFS.map((d, i) => ({
+      id: randomUUID(),
+      org_id: orgId,
+      entity: d.entity,
+      key: d.key,
+      label: d.label,
+      type: d.type,
+      options: d.options ?? [],
+      required: false,
+      position: i,
+    }))
+  );
+
   const accountRows = accounts.map((a) => ({ id: randomUUID(), org_id: orgId, ...a }));
   await insertAll(sb, "accounts", accountRows);
   const acctIdByName = new Map(accountRows.map((a) => [a.name, a.id]));
-  const customerRows = customers.map((c) => ({
-    id: randomUUID(),
-    org_id: orgId,
-    account_id: acctIdByName.get(c.company) ?? null,
-    email: c.email,
-    name: c.name,
-    title: c.title,
-  }));
+  const customerRows = customers.map((c) => {
+    const { company, custom_fields, ...rest } = c;
+    return { id: randomUUID(), org_id: orgId, account_id: acctIdByName.get(company) ?? null, ...rest, custom_fields: custom_fields ?? {} };
+  });
   await insertAll(sb, "customers", customerRows);
   return new Map(customerRows.map((c) => [c.email, c.id]));
 }

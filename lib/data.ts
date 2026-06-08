@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
 import { embed, embedOne, toVector } from "./embeddings";
 import { matchTickets, type TicketMatch } from "./retrieve";
+import { ENTITY_TABLE, STANDARD_FIELDS, isStandardKey } from "./fields";
 import type {
   KbArticle,
   Ticket,
@@ -16,6 +17,8 @@ import type {
   CommunityAnswer,
   Profile,
   CannedResponse,
+  CustomFieldDef,
+  FieldEntity,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -1158,4 +1161,117 @@ export async function listAccounts(orgId: string): Promise<AccountListItem[]> {
   } catch {
     return [];
   }
+}
+
+// ---------------------------------------------------------------------------
+// Custom fields (0008) — admin-defined schema + per-record values
+// ---------------------------------------------------------------------------
+function slugifyKey(label: string): string {
+  return (
+    label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 40) || "field"
+  );
+}
+
+export async function getCustomFieldDefs(orgId: string, entity: FieldEntity): Promise<CustomFieldDef[]> {
+  try {
+    const { data } = await supabaseAdmin()
+      .from("custom_field_defs")
+      .select("*")
+      .eq("org_id", orgId)
+      .eq("entity", entity)
+      .order("position", { ascending: true });
+    return (data ?? []) as CustomFieldDef[];
+  } catch {
+    return [];
+  }
+}
+
+export async function getAllCustomFieldDefs(orgId: string): Promise<CustomFieldDef[]> {
+  try {
+    const { data } = await supabaseAdmin()
+      .from("custom_field_defs")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("position", { ascending: true });
+    return (data ?? []) as CustomFieldDef[];
+  } catch {
+    return [];
+  }
+}
+
+export async function createCustomFieldDef(
+  orgId: string,
+  input: { entity: FieldEntity; label: string; type: CustomFieldDef["type"]; options?: string[]; required?: boolean }
+): Promise<void> {
+  const sb = supabaseAdmin();
+  const key = slugifyKey(input.label);
+  const { count } = await sb
+    .from("custom_field_defs")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .eq("entity", input.entity);
+  const { error } = await sb.from("custom_field_defs").insert({
+    org_id: orgId,
+    entity: input.entity,
+    key,
+    label: input.label,
+    type: input.type,
+    options: input.options ?? [],
+    required: input.required ?? false,
+    position: count ?? 0,
+  });
+  if (error) throw new Error(`createCustomFieldDef: ${error.message}`);
+}
+
+export async function deleteCustomFieldDef(orgId: string, id: string): Promise<void> {
+  const { error } = await supabaseAdmin().from("custom_field_defs").delete().eq("id", id).eq("org_id", orgId);
+  if (error) throw new Error(`deleteCustomFieldDef: ${error.message}`);
+}
+
+/** Current standard + custom field values for one record (for the editor). */
+export async function getEntityFields(
+  orgId: string,
+  entity: FieldEntity,
+  id: string
+): Promise<{ standard: Record<string, unknown>; custom: Record<string, unknown> } | null> {
+  try {
+    const table = ENTITY_TABLE[entity];
+    const cols = ["id", ...STANDARD_FIELDS[entity].map((f) => f.key), "custom_fields"].join(",");
+    const { data } = await supabaseAdmin().from(table).select(cols).eq("id", id).eq("org_id", orgId).maybeSingle();
+    if (!data) return null;
+    const row = data as unknown as Record<string, unknown>;
+    const standard: Record<string, unknown> = {};
+    for (const f of STANDARD_FIELDS[entity]) standard[f.key] = row[f.key] ?? null;
+    return { standard, custom: (row.custom_fields as Record<string, unknown>) ?? {} };
+  } catch {
+    return null;
+  }
+}
+
+/** Update a record's standard columns (whitelisted) + merge custom_fields. */
+export async function updateEntityFields(
+  orgId: string,
+  entity: FieldEntity,
+  id: string,
+  standard: Record<string, unknown>,
+  custom: Record<string, unknown>
+): Promise<void> {
+  const sb = supabaseAdmin();
+  const table = ENTITY_TABLE[entity];
+  const patch: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(standard)) {
+    if (isStandardKey(entity, k)) patch[k] = v;
+  }
+  if (custom && Object.keys(custom).length) {
+    const { data: row } = await sb.from(table).select("custom_fields").eq("id", id).eq("org_id", orgId).maybeSingle();
+    const current = ((row?.custom_fields as Record<string, unknown>) ?? {}) as Record<string, unknown>;
+    patch.custom_fields = { ...current, ...custom };
+  }
+  if (!Object.keys(patch).length) return;
+  const { error } = await sb.from(table).update(patch).eq("id", id).eq("org_id", orgId);
+  if (error) throw new Error(`updateEntityFields: ${error.message}`);
 }

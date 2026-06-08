@@ -15,6 +15,7 @@ export interface KbArticle {
   created_from_question_id: string | null;
   created_at: string;
   published_at: string | null;
+  custom_fields: Record<string, unknown>;
 }
 
 export type TicketStatus = "open" | "assisted" | "resolved" | "deflected";
@@ -44,6 +45,7 @@ export interface Ticket {
   first_response_at: string | null;
   created_at: string;
   resolved_at: string | null;
+  custom_fields: Record<string, unknown>;
 }
 
 export interface Account {
@@ -56,6 +58,15 @@ export interface Account {
   status: string;
   health: string;
   since: string | null;
+  domain: string | null;
+  industry: string | null;
+  company_size: string | null;
+  region: string | null;
+  arr: number | null;
+  renewal_date: string | null;
+  owner: string | null;
+  external_id: string | null;
+  custom_fields: Record<string, unknown>;
   created_at: string;
 }
 
@@ -66,6 +77,13 @@ export interface Customer {
   email: string;
   name: string;
   title: string | null;
+  phone: string | null;
+  location: string | null;
+  timezone: string | null;
+  locale: string | null;
+  external_id: string | null;
+  last_seen_at: string | null;
+  custom_fields: Record<string, unknown>;
   created_at: string;
 }
 
@@ -152,5 +170,21 @@ export interface CannedResponse {
   title: string;
   body: string;
   category: string | null;
+  created_at: string;
+}
+
+export type FieldEntity = "customer" | "account" | "ticket" | "doc";
+export type FieldType = "text" | "number" | "select" | "date" | "checkbox";
+
+export interface CustomFieldDef {
+  id: string;
+  org_id: string;
+  entity: FieldEntity;
+  key: string;
+  label: string;
+  type: FieldType;
+  options: string[];
+  required: boolean;
+  position: number;
   created_at: string;
 }
