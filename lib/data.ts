@@ -907,6 +907,7 @@ export async function getAiActivity(orgId: string, limit = 60): Promise<AiActivi
 export interface CustomerContext {
   customer: { id: string; name: string; email: string; title: string | null };
   account: {
+    id: string;
     name: string;
     plan: string;
     mrr: number;
@@ -940,11 +941,12 @@ export async function getCustomerContext(orgId: string, ticketId: string): Promi
     if (c.account_id) {
       const { data: a } = await sb
         .from("accounts")
-        .select("name,plan,mrr,seats,status,health,since")
+        .select("id,name,plan,mrr,seats,status,health,since")
         .eq("id", c.account_id as string)
         .maybeSingle();
       if (a) {
         account = {
+          id: a.id as string,
           name: a.name as string,
           plan: a.plan as string,
           mrr: Number(a.mrr ?? 0),
@@ -969,5 +971,191 @@ export async function getCustomerContext(orgId: string, ticketId: string): Promi
     };
   } catch {
     return null;
+  }
+}
+
+// Relationship views: a customer's tickets, an account's people + tickets.
+export interface MiniTicket {
+  id: string;
+  subject: string;
+  status: string;
+  intent: string | null;
+  priority: string;
+  csat: number | null;
+  created_at: string;
+}
+
+export interface CustomerProfile {
+  customer: { id: string; name: string; email: string; title: string | null };
+  account: { id: string; name: string; plan: string; status: string; health: string } | null;
+  tickets: MiniTicket[];
+  avgCsat: number | null;
+}
+
+export async function getCustomerProfile(orgId: string, customerId: string): Promise<CustomerProfile | null> {
+  try {
+    const sb = supabaseAdmin();
+    const { data: c } = await sb
+      .from("customers")
+      .select("id,name,email,title,account_id")
+      .eq("id", customerId)
+      .eq("org_id", orgId)
+      .maybeSingle();
+    if (!c) return null;
+    let account: CustomerProfile["account"] = null;
+    if (c.account_id) {
+      const { data: a } = await sb
+        .from("accounts")
+        .select("id,name,plan,status,health")
+        .eq("id", c.account_id as string)
+        .maybeSingle();
+      if (a)
+        account = {
+          id: a.id as string,
+          name: a.name as string,
+          plan: a.plan as string,
+          status: a.status as string,
+          health: a.health as string,
+        };
+    }
+    const { data: tk } = await sb
+      .from("tickets")
+      .select("id,subject,status,intent,priority,csat,created_at")
+      .eq("org_id", orgId)
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false });
+    const tickets = (tk ?? []) as MiniTicket[];
+    const csats = tickets.map((t) => t.csat).filter((x): x is number => x != null);
+    const avgCsat = csats.length ? csats.reduce((s, x) => s + x, 0) / csats.length : null;
+    return {
+      customer: { id: c.id as string, name: c.name as string, email: c.email as string, title: (c.title as string | null) ?? null },
+      account,
+      tickets,
+      avgCsat,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export interface AccountProfile {
+  account: { id: string; name: string; plan: string; mrr: number; seats: number; status: string; health: string; since: string | null };
+  customers: { id: string; name: string; email: string; title: string | null; ticketCount: number }[];
+  tickets: MiniTicket[];
+}
+
+export async function getAccountProfile(orgId: string, accountId: string): Promise<AccountProfile | null> {
+  try {
+    const sb = supabaseAdmin();
+    const { data: a } = await sb
+      .from("accounts")
+      .select("id,name,plan,mrr,seats,status,health,since")
+      .eq("id", accountId)
+      .eq("org_id", orgId)
+      .maybeSingle();
+    if (!a) return null;
+    const { data: cs } = await sb.from("customers").select("id,name,email,title").eq("org_id", orgId).eq("account_id", accountId);
+    const customers = cs ?? [];
+    const ids = customers.map((c) => c.id as string);
+    let rows: (MiniTicket & { customer_id: string })[] = [];
+    if (ids.length) {
+      const { data: tk } = await sb
+        .from("tickets")
+        .select("id,subject,status,intent,priority,csat,created_at,customer_id")
+        .eq("org_id", orgId)
+        .in("customer_id", ids)
+        .order("created_at", { ascending: false });
+      rows = (tk ?? []) as (MiniTicket & { customer_id: string })[];
+    }
+    const countByCustomer = new Map<string, number>();
+    for (const t of rows) countByCustomer.set(t.customer_id, (countByCustomer.get(t.customer_id) ?? 0) + 1);
+    return {
+      account: {
+        id: a.id as string,
+        name: a.name as string,
+        plan: a.plan as string,
+        mrr: Number(a.mrr ?? 0),
+        seats: Number(a.seats ?? 0),
+        status: a.status as string,
+        health: a.health as string,
+        since: (a.since as string | null) ?? null,
+      },
+      customers: customers.map((c) => ({
+        id: c.id as string,
+        name: c.name as string,
+        email: c.email as string,
+        title: (c.title as string | null) ?? null,
+        ticketCount: countByCustomer.get(c.id as string) ?? 0,
+      })),
+      tickets: rows.map((t) => ({
+        id: t.id,
+        subject: t.subject,
+        status: t.status,
+        intent: t.intent,
+        priority: t.priority,
+        csat: t.csat,
+        created_at: t.created_at,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export interface AccountListItem {
+  id: string;
+  name: string;
+  plan: string;
+  status: string;
+  health: string;
+  mrr: number;
+  customerCount: number;
+  ticketCount: number;
+  openCount: number;
+}
+
+export async function listAccounts(orgId: string): Promise<AccountListItem[]> {
+  try {
+    const sb = supabaseAdmin();
+    const { data: accts } = await sb
+      .from("accounts")
+      .select("id,name,plan,status,health,mrr")
+      .eq("org_id", orgId)
+      .order("mrr", { ascending: false });
+    if (!accts?.length) return [];
+    const { data: custs } = await sb.from("customers").select("id,account_id").eq("org_id", orgId);
+    const { data: tks } = await sb.from("tickets").select("status,customer_id").eq("org_id", orgId);
+    const acctByCustomer = new Map<string, string>();
+    const custCountByAcct = new Map<string, number>();
+    for (const c of custs ?? []) {
+      const acct = c.account_id as string | null;
+      if (acct) {
+        acctByCustomer.set(c.id as string, acct);
+        custCountByAcct.set(acct, (custCountByAcct.get(acct) ?? 0) + 1);
+      }
+    }
+    const ticketCountByAcct = new Map<string, number>();
+    const openByAcct = new Map<string, number>();
+    for (const t of tks ?? []) {
+      const cid = t.customer_id as string | null;
+      const acct = cid ? acctByCustomer.get(cid) : undefined;
+      if (acct) {
+        ticketCountByAcct.set(acct, (ticketCountByAcct.get(acct) ?? 0) + 1);
+        if (t.status === "open" || t.status === "assisted") openByAcct.set(acct, (openByAcct.get(acct) ?? 0) + 1);
+      }
+    }
+    return accts.map((a) => ({
+      id: a.id as string,
+      name: a.name as string,
+      plan: a.plan as string,
+      status: a.status as string,
+      health: a.health as string,
+      mrr: Number(a.mrr ?? 0),
+      customerCount: custCountByAcct.get(a.id as string) ?? 0,
+      ticketCount: ticketCountByAcct.get(a.id as string) ?? 0,
+      openCount: openByAcct.get(a.id as string) ?? 0,
+    }));
+  } catch {
+    return [];
   }
 }

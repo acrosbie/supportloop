@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth";
 
 const NAV: OperatorNavItem[] = [
   { href: "/agent", label: "Inbox", hint: "Tickets + AI assist", icon: "inbox", exact: true },
+  { href: "/agent/customers", label: "Customers", hint: "Accounts + people", icon: "people" },
   { href: "/agent/knowledge", label: "Knowledge Loop", hint: "Tickets → articles", icon: "knowledge" },
 ];
 

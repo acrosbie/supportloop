@@ -15,3 +15,12 @@ export function timeAgo(iso: string): string {
   return `${Math.floor(s / 86400)}d`;
 }
 
+/** Map an account plan to a Badge tone. */
+export function planTone(plan: string): "neutral" | "accent" | "success" | "warning" {
+  const p = plan.toLowerCase();
+  if (p === "enterprise") return "accent";
+  if (p === "business") return "success";
+  if (p === "pro") return "warning";
+  return "neutral";
+}
+

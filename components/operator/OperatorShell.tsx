@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Search, Inbox, BookOpen, LayoutDashboard, FlaskConical, ShieldCheck, Activity } from "lucide-react";
+import { Menu, Search, Inbox, BookOpen, LayoutDashboard, FlaskConical, ShieldCheck, Activity, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import RoleSwitcher from "@/components/RoleSwitcher";
 import LogoutButton from "@/components/auth/LogoutButton";
@@ -19,6 +19,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   activity: Activity,
   quality: FlaskConical,
   admin: ShieldCheck,
+  people: Users,
 };
 
 export interface OperatorNavItem {

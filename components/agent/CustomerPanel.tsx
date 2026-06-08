@@ -1,16 +1,10 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ChannelIcon, channelLabel } from "@/components/ui/channel-icon";
+import { planTone } from "@/lib/utils";
 import type { CustomerContext } from "@/lib/data";
-
-const planTone = (plan: string): "neutral" | "accent" | "success" | "warning" => {
-  const p = plan.toLowerCase();
-  if (p === "enterprise") return "accent";
-  if (p === "business") return "success";
-  if (p === "pro") return "warning";
-  return "neutral";
-};
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -48,7 +42,16 @@ export default function CustomerPanel({
       <div className="flex items-center gap-3">
         <Avatar name={name} className="h-10 w-10 text-sm" />
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium">{name}</div>
+          {ctx ? (
+            <Link
+              href={`/agent/customer/${ctx.customer.id}`}
+              className="block truncate text-sm font-medium hover:text-accent-strong hover:underline"
+            >
+              {name}
+            </Link>
+          ) : (
+            <div className="truncate text-sm font-medium">{name}</div>
+          )}
           <div className="truncate text-xs text-muted">{subtitle}</div>
         </div>
       </div>
@@ -56,7 +59,12 @@ export default function CustomerPanel({
       {ctx?.account && (
         <div className="mt-3 rounded-lg border border-border bg-surface-2 p-2.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-xs font-medium">{ctx.account.name}</span>
+            <Link
+              href={`/agent/account/${ctx.account.id}`}
+              className="truncate text-xs font-medium hover:text-accent-strong hover:underline"
+            >
+              {ctx.account.name}
+            </Link>
             <Badge tone={planTone(ctx.account.plan)}>{ctx.account.plan}</Badge>
           </div>
           <div className="mt-2 space-y-1 text-[11px]">
