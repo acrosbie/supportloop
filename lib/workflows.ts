@@ -302,3 +302,33 @@ export async function setWorkflowEnabled(orgId: string, id: string, enabled: boo
   const { error } = await supabaseAdmin().from("workflows").update({ enabled }).eq("id", id).eq("org_id", orgId);
   if (error) throw new Error(`setWorkflowEnabled: ${error.message}`);
 }
+
+export interface RecentRun {
+  id: string;
+  workflow_name: string;
+  ticket_id: string | null;
+  status: string;
+  stepCount: number;
+  created_at: string;
+}
+
+export async function getRecentWorkflowRuns(orgId: string, limit = 20): Promise<RecentRun[]> {
+  try {
+    const { data } = await supabaseAdmin()
+      .from("workflow_runs")
+      .select("id,workflow_name,ticket_id,status,steps,created_at")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    return (data ?? []).map((r) => ({
+      id: r.id as string,
+      workflow_name: (r.workflow_name as string) ?? "Workflow",
+      ticket_id: (r.ticket_id as string | null) ?? null,
+      status: r.status as string,
+      stepCount: Array.isArray(r.steps) ? (r.steps as unknown[]).length : 0,
+      created_at: r.created_at as string,
+    }));
+  } catch {
+    return [];
+  }
+}
