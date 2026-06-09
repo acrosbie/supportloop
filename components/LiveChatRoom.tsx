@@ -17,7 +17,17 @@ interface Msg {
  * Supabase Broadcast channel (+ Presence for online/typing). Messages also POST
  * to /api/live/send for history, so it stays functional if realtime drops.
  */
-export default function LiveChatRoom({ ticketId, role, initial = [] }: { ticketId: string; role: Role; initial?: Msg[] }) {
+export default function LiveChatRoom({
+  ticketId,
+  role,
+  initial = [],
+  embedded = false,
+}: {
+  ticketId: string;
+  role: Role;
+  initial?: Msg[];
+  embedded?: boolean;
+}) {
   const [messages, setMessages] = useState<Msg[]>(initial);
   const [input, setInput] = useState("");
   const [otherOnline, setOtherOnline] = useState(false);
@@ -90,7 +100,13 @@ export default function LiveChatRoom({ ticketId, role, initial = [] }: { ticketI
         : "Customer away";
 
   return (
-    <div className="flex h-[28rem] flex-col overflow-hidden rounded-xl border border-border bg-surface">
+    <div
+      className={
+        embedded
+          ? "flex min-h-0 flex-1 flex-col bg-surface"
+          : "flex h-[28rem] flex-col overflow-hidden rounded-xl border border-border bg-surface"
+      }
+    >
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
         <div className="flex items-center gap-2 text-sm font-medium">
           <span className={`h-2 w-2 rounded-full ${otherOnline ? "bg-success" : "bg-border-strong"}`} />

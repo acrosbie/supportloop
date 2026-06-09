@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Sparkles, X } from "lucide-react";
+import { MessageCircle, Sparkles, X, Headset } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
+import LiveChatRoom from "@/components/LiveChatRoom";
 
 interface Source {
   id: string;
@@ -41,6 +42,8 @@ export default function ChatWidget({ orgSlug, orgName }: { orgSlug?: string; org
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [liveTicketId, setLiveTicketId] = useState<string | null>(null);
+  const [liveStarting, setLiveStarting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -110,6 +113,33 @@ export default function ChatWidget({ orgSlug, orgName }: { orgSlug?: string; org
     }
   }
 
+  // Escalate from the bot straight into a live chat with a human, in-place.
+  async function startLive() {
+    if (liveStarting || liveTicketId) return;
+    setLiveStarting(true);
+    try {
+      const r = await fetch("/api/live/start", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ orgSlug }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+      setLiveTicketId(j.ticketId);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content: "Sorry — I couldn't connect you to a live agent right now. Please try again in a moment.",
+          error: true,
+        },
+      ]);
+    } finally {
+      setLiveStarting(false);
+    }
+  }
+
   return (
     <>
       {/* Launcher */}
@@ -129,18 +159,41 @@ export default function ChatWidget({ orgSlug, orgName }: { orgSlug?: string; org
           <div className="flex items-center justify-between bg-gradient-to-br from-accent-strong to-accent px-4 py-4 text-accent-fg">
             <div className="flex items-center gap-2.5">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
-                <Sparkles className="h-5 w-5" />
+                {liveTicketId ? <Headset className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
               </span>
               <div className="leading-tight">
-                <div className="text-sm font-semibold">{name} Assistant</div>
-                <div className="text-[11px] opacity-90">Replies instantly · from the help center</div>
+                <div className="text-sm font-semibold">{liveTicketId ? `${name} Support` : `${name} Assistant`}</div>
+                <div className="text-[11px] opacity-90">
+                  {liveTicketId ? "Live chat with our team" : "Replies instantly · from the help center"}
+                </div>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="rounded p-1 hover:bg-white/20" aria-label="Close">
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              {liveTicketId ? (
+                <button onClick={() => setLiveTicketId(null)} className="rounded px-2 py-1 text-[11px] hover:bg-white/20">
+                  ← Assistant
+                </button>
+              ) : (
+                <button
+                  onClick={startLive}
+                  disabled={liveStarting}
+                  title="Talk to a human"
+                  aria-label="Talk to a human"
+                  className="rounded p-1 hover:bg-white/20 disabled:opacity-60"
+                >
+                  <Headset className="h-4 w-4" />
+                </button>
+              )}
+              <button onClick={() => setOpen(false)} className="rounded p-1 hover:bg-white/20" aria-label="Close">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
+          {liveTicketId ? (
+            <LiveChatRoom ticketId={liveTicketId} role="customer" embedded />
+          ) : (
+            <>
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto p-3">
             {messages.length === 0 && (
               <div className="space-y-3">
@@ -212,13 +265,22 @@ export default function ChatWidget({ orgSlug, orgName }: { orgSlug?: string; org
                               ✓ Ticket created (#{m.ticketId.slice(0, 8)}) — a human will follow up.
                             </div>
                           ) : (
-                            <button
-                              onClick={() => escalate(i, messages[i - 1]?.content ?? "")}
-                              disabled={m.escalating}
-                              className="rounded-lg bg-accent px-2.5 py-1 text-[11px] font-medium text-accent-fg disabled:opacity-60"
-                            >
-                              {m.escalating ? "Creating ticket…" : "Create a support ticket"}
-                            </button>
+                            <div className="flex flex-wrap gap-1.5">
+                              <button
+                                onClick={() => escalate(i, messages[i - 1]?.content ?? "")}
+                                disabled={m.escalating}
+                                className="rounded-lg bg-accent px-2.5 py-1 text-[11px] font-medium text-accent-fg disabled:opacity-60"
+                              >
+                                {m.escalating ? "Creating ticket…" : "Create a ticket"}
+                              </button>
+                              <button
+                                onClick={startLive}
+                                disabled={liveStarting}
+                                className="rounded-lg border border-accent px-2.5 py-1 text-[11px] font-medium text-accent-strong disabled:opacity-60"
+                              >
+                                {liveStarting ? "Connecting…" : "Chat with a human"}
+                              </button>
+                            </div>
                           )}
                         </div>
                       ) : null}
@@ -250,6 +312,8 @@ export default function ChatWidget({ orgSlug, orgName }: { orgSlug?: string; org
               Send
             </button>
           </form>
+            </>
+          )}
         </div>
       )}
     </>
