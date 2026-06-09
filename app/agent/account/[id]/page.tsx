@@ -69,7 +69,10 @@ export default async function AccountPage({ params }: { params: { id: string } }
             >
               <Avatar name={c.name} />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{c.name}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="truncate text-sm font-medium">{c.name}</span>
+                  {c.accountRole === "admin" && <Badge tone="accent">admin</Badge>}
+                </div>
                 <div className="truncate text-xs text-muted">{c.title || c.email}</div>
               </div>
               <span className="shrink-0 text-xs text-muted">{c.ticketCount} tickets</span>

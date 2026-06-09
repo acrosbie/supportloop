@@ -1106,7 +1106,7 @@ export async function getCustomerProfile(orgId: string, customerId: string): Pro
 
 export interface AccountProfile {
   account: { id: string; name: string; plan: string; mrr: number; seats: number; status: string; health: string; since: string | null };
-  customers: { id: string; name: string; email: string; title: string | null; ticketCount: number }[];
+  customers: { id: string; name: string; email: string; title: string | null; accountRole: string; ticketCount: number }[];
   tickets: MiniTicket[];
 }
 
@@ -1120,7 +1120,11 @@ export async function getAccountProfile(orgId: string, accountId: string): Promi
       .eq("org_id", orgId)
       .maybeSingle();
     if (!a) return null;
-    const { data: cs } = await sb.from("customers").select("id,name,email,title").eq("org_id", orgId).eq("account_id", accountId);
+    const { data: cs } = await sb
+      .from("customers")
+      .select("id,name,email,title,account_role")
+      .eq("org_id", orgId)
+      .eq("account_id", accountId);
     const customers = cs ?? [];
     const ids = customers.map((c) => c.id as string);
     let rows: (MiniTicket & { customer_id: string })[] = [];
@@ -1151,6 +1155,7 @@ export async function getAccountProfile(orgId: string, accountId: string): Promi
         name: c.name as string,
         email: c.email as string,
         title: (c.title as string | null) ?? null,
+        accountRole: (c.account_role as string) ?? "member",
         ticketCount: countByCustomer.get(c.id as string) ?? 0,
       })),
       tickets: rows.map((t) => ({
