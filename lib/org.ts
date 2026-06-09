@@ -55,6 +55,10 @@ export interface OrgSettings {
   accent?: string; // hex, e.g. "#5e6ad2"
   tagline?: string; // help-center hero subtitle
   threshold?: number; // grounding similarity override
+  domain?: string; // custom domain (CNAME) for the help center
+  assistant?: boolean; // show the AI chat assistant (default true)
+  liveChat?: boolean; // allow escalation to live chat (default true)
+  community?: boolean; // show the community section (default true)
 }
 
 export async function getOrgSettings(orgId: string): Promise<OrgSettings> {

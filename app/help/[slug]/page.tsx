@@ -36,7 +36,9 @@ export default async function HostedHelpCenter({ params }: { params: { slug: str
         />
       </main>
 
-      <ChatWidget orgSlug={org.slug} orgName={org.name} />
+      {settings.assistant !== false && (
+        <ChatWidget orgSlug={org.slug} orgName={org.name} liveChat={settings.liveChat !== false} />
+      )}
 
       <footer className="border-t border-border bg-surface">
         <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-2 px-6 py-8 text-xs text-muted sm:flex-row sm:items-center">

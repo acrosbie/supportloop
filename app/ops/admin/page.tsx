@@ -34,7 +34,7 @@ export default async function AdminPage() {
       <section>
         <h2 className="text-xs font-medium uppercase tracking-widest text-muted">Workspace</h2>
         <div className="mt-3">
-          <AdminSettings initial={settings} />
+          <AdminSettings initial={settings} slug={org?.slug ?? ""} />
         </div>
       </section>
 

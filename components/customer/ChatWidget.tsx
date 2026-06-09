@@ -35,7 +35,15 @@ function patchLast(arr: Msg[], patch: Partial<Msg>): Msg[] {
   return copy;
 }
 
-export default function ChatWidget({ orgSlug, orgName }: { orgSlug?: string; orgName?: string }) {
+export default function ChatWidget({
+  orgSlug,
+  orgName,
+  liveChat = true,
+}: {
+  orgSlug?: string;
+  orgName?: string;
+  liveChat?: boolean;
+}) {
   const name = orgName ?? "Orbit";
   const articleBase = orgSlug ? `/help/${orgSlug}/article` : "/user/article";
   const [open, setOpen] = useState(false);
@@ -173,7 +181,7 @@ export default function ChatWidget({ orgSlug, orgName }: { orgSlug?: string; org
                 <button onClick={() => setLiveTicketId(null)} className="rounded px-2 py-1 text-[11px] hover:bg-white/20">
                   ← Assistant
                 </button>
-              ) : (
+              ) : liveChat ? (
                 <button
                   onClick={startLive}
                   disabled={liveStarting}
@@ -183,7 +191,7 @@ export default function ChatWidget({ orgSlug, orgName }: { orgSlug?: string; org
                 >
                   <Headset className="h-4 w-4" />
                 </button>
-              )}
+              ) : null}
               <button onClick={() => setOpen(false)} className="rounded p-1 hover:bg-white/20" aria-label="Close">
                 <X className="h-4 w-4" />
               </button>
@@ -273,13 +281,15 @@ export default function ChatWidget({ orgSlug, orgName }: { orgSlug?: string; org
                               >
                                 {m.escalating ? "Creating ticket…" : "Create a ticket"}
                               </button>
-                              <button
-                                onClick={startLive}
-                                disabled={liveStarting}
-                                className="rounded-lg border border-accent px-2.5 py-1 text-[11px] font-medium text-accent-strong disabled:opacity-60"
-                              >
-                                {liveStarting ? "Connecting…" : "Chat with a human"}
-                              </button>
+                              {liveChat && (
+                                <button
+                                  onClick={startLive}
+                                  disabled={liveStarting}
+                                  className="rounded-lg border border-accent px-2.5 py-1 text-[11px] font-medium text-accent-strong disabled:opacity-60"
+                                >
+                                  {liveStarting ? "Connecting…" : "Chat with a human"}
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>

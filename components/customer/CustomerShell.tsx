@@ -30,13 +30,16 @@ function Logo() {
 export default function CustomerShell({
   children,
   auth,
+  settings,
 }: {
   children: React.ReactNode;
   auth: { name: string } | null;
+  settings?: { community?: boolean; assistant?: boolean; liveChat?: boolean };
 }) {
   const pathname = usePathname();
   const year = new Date().getFullYear();
-  const navItems = auth ? [...NAV, { href: "/user/tickets", label: "My requests" }] : NAV;
+  const base = settings?.community === false ? NAV.filter((n) => n.href !== "/user/community") : NAV;
+  const navItems = auth ? [...base, { href: "/user/tickets", label: "My requests" }] : base;
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -101,7 +104,7 @@ export default function CustomerShell({
             <Logo />
 
             <nav className="hidden items-center gap-1 md:flex">
-              {NAV.map((item) => {
+              {base.map((item) => {
                 const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
                 return (
                   <Link
@@ -153,7 +156,7 @@ export default function CustomerShell({
       <div key={pathname} className="flex-1 animate-fade-in">{children}</div>
 
       {/* The assistant follows the customer across every help-center page. */}
-      <ChatWidget />
+      {settings?.assistant !== false && <ChatWidget liveChat={settings?.liveChat !== false} />}
 
       {/* Footer */}
       <footer className="mt-20 border-t border-border bg-surface">

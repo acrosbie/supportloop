@@ -21,6 +21,10 @@ export async function POST(req: NextRequest) {
   if (typeof settings?.accent === "string") patch.accent = settings.accent.slice(0, 9);
   if (typeof settings?.tagline === "string") patch.tagline = settings.tagline.slice(0, 200);
   if (typeof settings?.threshold === "number") patch.threshold = Math.max(0.3, Math.min(0.85, settings.threshold));
+  if (typeof settings?.domain === "string") patch.domain = settings.domain.trim().toLowerCase().slice(0, 120);
+  if (typeof settings?.assistant === "boolean") patch.assistant = settings.assistant;
+  if (typeof settings?.liveChat === "boolean") patch.liveChat = settings.liveChat;
+  if (typeof settings?.community === "boolean") patch.community = settings.community;
 
   try {
     await updateOrgSettings(auth.orgId, patch);

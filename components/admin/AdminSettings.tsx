@@ -8,12 +8,36 @@ interface Settings {
   accent?: string;
   tagline?: string;
   threshold?: number;
+  domain?: string;
+  assistant?: boolean;
+  liveChat?: boolean;
+  community?: boolean;
 }
 
-export default function AdminSettings({ initial }: { initial: Settings }) {
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between gap-2 text-sm">
+      <span className="text-foreground/80">{label}</span>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        aria-label={label}
+        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? "bg-accent" : "bg-border-strong"}`}
+      >
+        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${checked ? "left-[18px]" : "left-0.5"}`} />
+      </button>
+    </label>
+  );
+}
+
+export default function AdminSettings({ initial, slug }: { initial: Settings; slug: string }) {
   const [accent, setAccent] = useState(initial.accent || "#5e6ad2");
   const [tagline, setTagline] = useState(initial.tagline || "");
   const [threshold, setThreshold] = useState(initial.threshold ?? 0.6);
+  const [domain, setDomain] = useState(initial.domain || "");
+  const [assistant, setAssistant] = useState(initial.assistant !== false);
+  const [liveChat, setLiveChat] = useState(initial.liveChat !== false);
+  const [community, setCommunity] = useState(initial.community !== false);
   const [busy, setBusy] = useState(false);
 
   async function save() {
@@ -22,7 +46,7 @@ export default function AdminSettings({ initial }: { initial: Settings }) {
       const r = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ settings: { accent, tagline, threshold } }),
+        body: JSON.stringify({ settings: { accent, tagline, threshold, domain, assistant, liveChat, community } }),
       });
       const j = await r.json();
       if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
@@ -76,6 +100,30 @@ export default function AdminSettings({ initial }: { initial: Settings }) {
           Higher = the assistant answers only when very confident (more escalations).
         </span>
       </label>
+
+      <div className="space-y-2.5 border-t border-border pt-4">
+        <span className="text-sm font-medium">Customer site components</span>
+        <Toggle label="AI assistant (chatbot)" checked={assistant} onChange={setAssistant} />
+        <Toggle label="Live chat escalation" checked={liveChat} onChange={setLiveChat} />
+        <Toggle label="Community" checked={community} onChange={setCommunity} />
+        <span className="block text-xs text-muted">Turn customer-facing pieces on or off for your help center.</span>
+      </div>
+
+      <label className="block border-t border-border pt-4">
+        <span className="text-sm font-medium">Custom domain</span>
+        <input
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          placeholder="help.yourcompany.com"
+          className="field mt-1"
+        />
+        <span className="mt-1.5 block text-xs leading-relaxed text-muted">
+          Add a CNAME record pointing <code className="rounded bg-surface-2 px-1">{domain || "help.yourcompany.com"}</code> →{" "}
+          <code className="rounded bg-surface-2 px-1">cname.supportloop.app</code>. Until it&apos;s verified, your help
+          center stays at <code className="rounded bg-surface-2 px-1">/help/{slug}</code>.
+        </span>
+      </label>
+
       <Button size="sm" onClick={save} disabled={busy}>
         {busy ? "Saving…" : "Save settings"}
       </Button>
