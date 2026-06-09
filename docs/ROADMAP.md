@@ -9,6 +9,7 @@ Last updated: 2026-06-07
 ## ✅ Shipped
 
 - **Multi-tenant foundation** — orgs, org-scoped data layer, role-based access, RLS hardening (0006).
+- **RBAC** (0011) — agent **groups** + group roles (member / group-admin), customer **account roles** (admin / member), and a pure permission model (`lib/rbac.ts`) enforced across KB (create/edit/publish/delete), ops automation, custom fields, settings & team — plus an admin team/group management UI and a `can()` test suite.
 - **Customer self-service** — branded hosted help center, community, embeddable widget, grounded RAG chat that **escalates instead of hallucinating** (similarity guardrail, per-org threshold).
 - **Operator console** — inbox/queues, ticket detail, triage, grounded draft replies, canned macros, knowledge loop (resolved ticket → drafted article).
 - **AI depth** — AI insights (emerging themes + weekly narrative), **agent copilot** (summary, next action, similar tickets), **agentic tool-use** (investigate → propose refund → human-approved), **AI observability** (per-call cost/latency/grounding traces), **evals + faithfulness** (LLM-as-judge hallucination check).
