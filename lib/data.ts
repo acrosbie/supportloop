@@ -594,6 +594,40 @@ export async function getAllProfiles(orgId: string): Promise<Profile[]> {
   return (data ?? []) as Profile[];
 }
 
+// RBAC management (0011): agent groups + group-role assignment.
+export async function listGroups(orgId: string): Promise<{ id: string; name: string }[]> {
+  try {
+    const { data } = await supabaseAdmin().from("groups").select("id,name").eq("org_id", orgId).order("name");
+    return (data ?? []).map((g) => ({ id: g.id as string, name: g.name as string }));
+  } catch {
+    return [];
+  }
+}
+
+export async function createGroup(orgId: string, name: string): Promise<void> {
+  const { error } = await supabaseAdmin().from("groups").insert({ org_id: orgId, name: name.trim().slice(0, 60) });
+  if (error) throw new Error(`createGroup: ${error.message}`);
+}
+
+export async function assignUserGroup(
+  orgId: string,
+  userId: string,
+  groupId: string | null,
+  groupRole: "member" | "admin" | null
+): Promise<void> {
+  const sb = supabaseAdmin();
+  const { data } = await sb.auth.admin.getUserById(userId);
+  const meta = (data.user?.app_metadata ?? {}) as Record<string, unknown>;
+  // Merge so role/org_id survive; the user picks up the change on next sign-in.
+  await sb.auth.admin.updateUserById(userId, { app_metadata: { ...meta, group_id: groupId, group_role: groupRole } });
+  const { error } = await sb
+    .from("profiles")
+    .update({ group_id: groupId, group_role: groupRole })
+    .eq("id", userId)
+    .eq("org_id", orgId);
+  if (error) throw new Error(`assignUserGroup: ${error.message}`);
+}
+
 export async function setUserRole(orgId: string, userId: string, role: "customer" | "agent" | "admin"): Promise<void> {
   // Only act on a user in this org; preserve org_id in app_metadata.
   const { data: target } = await supabaseAdmin().from("profiles").select("id").eq("id", userId).eq("org_id", orgId).maybeSingle();

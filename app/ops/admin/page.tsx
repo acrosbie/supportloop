@@ -1,5 +1,5 @@
 import { requirePermission, NO_ORG } from "@/lib/auth";
-import { getAllProfiles, getAllArticles, getAllCustomFieldDefs } from "@/lib/data";
+import { getAllProfiles, getAllArticles, getAllCustomFieldDefs, listGroups } from "@/lib/data";
 import { getOrgById, getOrgSettings } from "@/lib/org";
 import AdminTeam from "@/components/admin/AdminTeam";
 import AdminKb from "@/components/admin/AdminKb";
@@ -12,12 +12,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const me = await requirePermission("settings.manage");
   const orgId = me.orgId ?? NO_ORG;
-  const [profiles, articles, org, settings, fieldDefs] = await Promise.all([
+  const [profiles, articles, org, settings, fieldDefs, groups] = await Promise.all([
     getAllProfiles(orgId),
     getAllArticles(orgId),
     getOrgById(orgId),
     getOrgSettings(orgId),
     getAllCustomFieldDefs(orgId),
+    listGroups(orgId),
   ]);
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
@@ -60,7 +61,14 @@ export default async function AdminPage() {
         <h2 className="text-xs font-medium uppercase tracking-widest text-muted">Team &amp; roles</h2>
         <div className="mt-3">
           <AdminTeam
-            profiles={profiles.map((p) => ({ id: p.id, role: p.role, display_name: p.display_name }))}
+            profiles={profiles.map((p) => ({
+              id: p.id,
+              role: p.role,
+              display_name: p.display_name,
+              group_id: p.group_id,
+              group_role: p.group_role,
+            }))}
+            groups={groups}
             meId={me.id}
           />
         </div>
