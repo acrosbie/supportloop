@@ -27,10 +27,10 @@ export default async function ArticlePage({ params }: { params: { id: string } }
         <ChevronRight className="h-3.5 w-3.5" />
         <span className="text-foreground/70">{article.category}</span>
       </div>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight">{article.title}</h1>
+      <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">{article.title}</h1>
       <div className="mt-2 text-sm text-muted">Updated {timeAgo(updated)}</div>
 
-      <article className="mt-8 space-y-4 text-[15px] leading-relaxed text-foreground/90">
+      <article className="mt-8 space-y-5 text-base leading-relaxed text-foreground/90">
         {paragraphs.map((p, i) => (
           <p key={i}>{p}</p>
         ))}
@@ -56,7 +56,7 @@ export default async function ArticlePage({ params }: { params: { id: string } }
               <li key={a.id}>
                 <Link
                   href={`/user/article/${a.id}`}
-                  className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm hover:bg-surface-2"
+                  className="flex items-center justify-between gap-3 px-5 py-4 text-[15px] hover:bg-surface-2"
                 >
                   <span className="font-medium">{a.title}</span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted" />

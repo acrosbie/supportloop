@@ -89,21 +89,21 @@ export default function HelpSearch({
   return (
     <div>
       {/* Hero with search */}
-      <section className="bg-gradient-to-b from-accent-soft to-white">
-        <div className="mx-auto max-w-3xl px-6 pb-12 pt-16 text-center">
-          <h1 className="text-4xl font-semibold tracking-tight">{title}</h1>
-          {subtitle && <p className="mt-3 text-muted">{subtitle}</p>}
-          <div className="mx-auto mt-7 flex max-w-xl items-center gap-2 rounded-xl border border-border bg-white px-4 py-3 shadow-sm focus-within:border-accent">
-            <Search className="h-4 w-4 text-muted" />
+      <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-accent-soft via-accent-soft/40 to-white">
+        <div className="mx-auto max-w-3xl px-6 pb-16 pt-20 text-center sm:pt-24">
+          <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
+          {subtitle && <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-muted">{subtitle}</p>}
+          <div className="mx-auto mt-8 flex max-w-2xl items-center gap-3 rounded-2xl border border-border bg-white px-5 py-4 shadow-sm transition-all focus-within:border-accent focus-within:shadow-md">
+            <Search className="h-5 w-5 shrink-0 text-muted" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search for an answer…"
-              className="w-full bg-transparent text-sm outline-none placeholder:text-muted"
+              className="w-full bg-transparent text-base outline-none placeholder:text-muted"
             />
           </div>
           {submitHref && (
-            <Link href={submitHref} className="mt-4 inline-block text-sm font-medium text-accent-strong hover:underline">
+            <Link href={submitHref} className="mt-5 inline-block text-sm font-medium text-accent-strong hover:underline">
               Can&apos;t find an answer? Submit a request →
             </Link>
           )}
@@ -111,7 +111,7 @@ export default function HelpSearch({
       </section>
 
       {/* Body */}
-      <div className="mx-auto max-w-5xl px-6 py-12">
+      <div className="mx-auto max-w-6xl px-6 py-14">
         {showList ? (
           <div>
             <div className="flex items-center justify-between">
@@ -133,7 +133,7 @@ export default function HelpSearch({
                   <li key={a.id}>
                     <Link
                       href={`${articleBase}/${a.id}`}
-                      className="flex items-center gap-3 px-5 py-3.5 text-sm hover:bg-surface-2"
+                      className="flex items-center gap-3 px-5 py-4 text-[15px] hover:bg-surface-2"
                     >
                       <Icon className="h-4 w-4 shrink-0 text-muted" />
                       <span className="min-w-0 flex-1">
@@ -157,21 +157,21 @@ export default function HelpSearch({
         ) : (
           <div>
             <div className="text-xs font-medium uppercase tracking-widest text-muted">Browse by topic</div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {categories.map(([name, count]) => {
                 const Icon = iconFor(name);
                 return (
                   <button
                     key={name}
                     onClick={() => setCategory(name)}
-                    className="flex items-start gap-3 rounded-xl border border-border bg-white p-4 text-left transition-colors hover:border-accent"
+                    className="flex items-start gap-3.5 rounded-2xl border border-border bg-white p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-strong">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-strong">
                       <Icon className="h-5 w-5" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-sm font-medium">{name}</span>
-                      <span className="block text-xs text-muted">
+                      <span className="block text-[15px] font-medium">{name}</span>
+                      <span className="mt-0.5 block text-sm text-muted">
                         {count} article{count === 1 ? "" : "s"}
                       </span>
                     </span>
@@ -188,7 +188,7 @@ export default function HelpSearch({
                   <li key={a.id}>
                     <Link
                       href={`${articleBase}/${a.id}`}
-                      className="flex items-center gap-3 px-5 py-3.5 text-sm hover:bg-surface-2"
+                      className="flex items-center gap-3 px-5 py-4 text-[15px] hover:bg-surface-2"
                     >
                       <Icon className="h-4 w-4 shrink-0 text-muted" />
                       <span className="min-w-0 flex-1">
