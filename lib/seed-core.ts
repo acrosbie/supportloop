@@ -585,6 +585,10 @@ const CSAT_STEPS = [
   { type: "flag_account_at_risk" },
   { type: "add_internal_note", message: "Low CSAT — reach out personally and offer to make it right." },
 ];
+const HAPPY_STEPS = [
+  { type: "set_customer_field", field: "lifecycle_stage", value: "Active" },
+  { type: "add_internal_note", message: "Happy customer (CSAT ≥ 4) — candidate for a testimonial or referral." },
+];
 
 /** Seed the default workflows. Best-effort: needs 0009; the conditional
  *  csat.submitted workflow needs 0010 (the condition column). */
@@ -618,6 +622,16 @@ async function seedWorkflows(sb: SupabaseClient, orgId: string): Promise<void> {
       steps: CSAT_STEPS,
       position: 1,
       condition: { all: [{ field: "ticket.csat", op: "lte", value: 2 }] },
+    });
+    rows.push({
+      id: randomUUID(),
+      org_id: orgId,
+      name: "Happy-customer tagging",
+      trigger: "csat.submitted",
+      enabled: true,
+      steps: HAPPY_STEPS,
+      position: 2,
+      condition: { all: [{ field: "ticket.csat", op: "gte", value: 4 }] },
     });
   }
   await insertAll(sb, "workflows", rows);

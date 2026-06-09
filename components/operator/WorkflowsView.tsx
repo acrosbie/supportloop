@@ -16,6 +16,7 @@ const STEP_LABEL: Record<string, string> = {
   escalate: "Escalate ticket",
   flag_account_at_risk: "Flag account at-risk",
   add_internal_note: "Add internal note",
+  set_customer_field: "Set customer field",
 };
 const OP_LABEL: Record<string, string> = { eq: "=", ne: "≠", lt: "<", lte: "≤", gt: ">", gte: "≥", contains: "contains", in: "in" };
 

@@ -18,6 +18,7 @@ import {
   type Triage,
   type CustomerContext,
 } from "./data";
+import { isStandardKey } from "./fields";
 import type { Ticket } from "./types";
 
 export type WorkflowTrigger = "ticket.created" | "csat.submitted";
@@ -28,11 +29,14 @@ export type WorkflowStepType =
   | "extract_fields"
   | "escalate"
   | "flag_account_at_risk"
-  | "add_internal_note";
+  | "add_internal_note"
+  | "set_customer_field";
 
 export interface WorkflowStep {
   type: WorkflowStepType;
   message?: string;
+  field?: string;
+  value?: unknown;
 }
 export interface Predicate {
   field: string;
@@ -71,6 +75,7 @@ export const STEP_LABEL: Record<WorkflowStepType, string> = {
   escalate: "Escalate ticket",
   flag_account_at_risk: "Flag account at-risk",
   add_internal_note: "Add internal note",
+  set_customer_field: "Set customer field",
 };
 
 function normalizeWorkflow(w: Record<string, unknown>): WorkflowDef {
@@ -213,6 +218,8 @@ function runStep(orgId: string, ticketId: string, step: WorkflowStep, context: R
       return flagAccountStep(orgId, context);
     case "add_internal_note":
       return noteStep(orgId, ticketId, step);
+    case "set_customer_field":
+      return setCustomerFieldStep(orgId, step, context);
     default:
       return Promise.resolve({ detail: "unknown step", skipped: true });
   }
@@ -352,6 +359,19 @@ async function noteStep(orgId: string, ticketId: string, step: WorkflowStep): Pr
   const msg = typeof step.message === "string" && step.message.trim() ? step.message.trim() : "Note added by workflow.";
   await appendAgentReply(orgId, ticketId, `📝 ${msg}`, true);
   return { detail: "internal note added" };
+}
+
+async function setCustomerFieldStep(orgId: string, step: WorkflowStep, c: RunContext): Promise<StepResult> {
+  if (!c.ctx?.customer) return { detail: "no customer linked", skipped: true };
+  const field = typeof step.field === "string" ? step.field : "";
+  if (!field) return { detail: "no field configured", skipped: true };
+  const value = step.value ?? null;
+  const std: Record<string, unknown> = {};
+  const cust: Record<string, unknown> = {};
+  if (isStandardKey("customer", field)) std[field] = value;
+  else cust[field] = value;
+  await updateEntityFields(orgId, "customer", c.ctx.customer.id, std, cust);
+  return { detail: `${c.ctx.customer.name}: ${field} → ${value}` };
 }
 
 // --- Reads for the UI ------------------------------------------------------
