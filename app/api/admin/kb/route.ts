@@ -1,15 +1,22 @@
 import { NextRequest } from "next/server";
-import { getAuth } from "@/lib/auth";
+import { orgIdWithPermission } from "@/lib/auth";
 import { updateArticle, unpublishArticle, deleteArticle, publishArticle } from "@/lib/data";
+import type { Permission } from "@/lib/rbac";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-// Admin KB management: update (re-embeds if published), publish, unpublish, delete.
+// Permission per KB action: edit / publish / delete.
+const ACTION_PERM: Record<string, Permission> = {
+  update: "kb.edit",
+  publish: "kb.publish",
+  unpublish: "kb.publish",
+  delete: "kb.delete",
+};
+
+// KB management: update (re-embeds if published), publish, unpublish, delete.
 export async function POST(req: NextRequest) {
-  const auth = await getAuth();
-  if (!auth || auth.role !== "admin") return Response.json({ error: "Admin only" }, { status: 403 });
   let action: string;
   let id: string;
   let fields: { title?: string; body?: string; category?: string; tags?: string[] } | undefined;
@@ -19,13 +26,17 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
   if (!action || !id) return Response.json({ error: "action and id required" }, { status: 400 });
-  if (!auth.orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const perm = ACTION_PERM[action];
+  if (!perm) return Response.json({ error: `Unknown action: ${action}` }, { status: 400 });
+
+  const orgId = await orgIdWithPermission(perm);
+  if (!orgId) return Response.json({ error: "You don't have permission for that action." }, { status: 403 });
+
   try {
-    if (action === "update") await updateArticle(auth.orgId, id, fields ?? {});
-    else if (action === "publish") await publishArticle(auth.orgId, id);
-    else if (action === "unpublish") await unpublishArticle(auth.orgId, id);
-    else if (action === "delete") await deleteArticle(auth.orgId, id);
-    else return Response.json({ error: `Unknown action: ${action}` }, { status: 400 });
+    if (action === "update") await updateArticle(orgId, id, fields ?? {});
+    else if (action === "publish") await publishArticle(orgId, id);
+    else if (action === "unpublish") await unpublishArticle(orgId, id);
+    else if (action === "delete") await deleteArticle(orgId, id);
     return Response.json({ ok: true });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : "Failed" }, { status: 500 });

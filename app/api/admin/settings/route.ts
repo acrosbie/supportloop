@@ -1,15 +1,15 @@
 import { NextRequest } from "next/server";
-import { getAuth } from "@/lib/auth";
+import { orgIdWithPermission } from "@/lib/auth";
 import { updateOrgSettings, type OrgSettings } from "@/lib/org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Admin updates per-org settings/branding.
+// Update per-org settings/branding. Requires settings.manage.
 export async function POST(req: NextRequest) {
-  const auth = await getAuth();
-  if (!auth || auth.role !== "admin" || !auth.orgId) {
-    return Response.json({ ok: false, error: "Admin only" }, { status: 403 });
+  const orgId = await orgIdWithPermission("settings.manage");
+  if (!orgId) {
+    return Response.json({ ok: false, error: "You don't have permission to manage settings." }, { status: 403 });
   }
   let settings: OrgSettings | undefined;
   try {
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   if (typeof settings?.community === "boolean") patch.community = settings.community;
 
   try {
-    await updateOrgSettings(auth.orgId, patch);
+    await updateOrgSettings(orgId, patch);
     return Response.json({ ok: true });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : "Failed" }, { status: 500 });

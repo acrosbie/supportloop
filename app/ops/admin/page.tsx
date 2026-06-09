@@ -1,4 +1,4 @@
-import { requireRole, NO_ORG } from "@/lib/auth";
+import { requirePermission, NO_ORG } from "@/lib/auth";
 import { getAllProfiles, getAllArticles, getAllCustomFieldDefs } from "@/lib/data";
 import { getOrgById, getOrgSettings } from "@/lib/org";
 import AdminTeam from "@/components/admin/AdminTeam";
@@ -10,7 +10,7 @@ import CustomFieldsManager from "@/components/admin/CustomFieldsManager";
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const me = await requireRole(["admin"]);
+  const me = await requirePermission("settings.manage");
   const orgId = me.orgId ?? NO_ORG;
   const [profiles, articles, org, settings, fieldDefs] = await Promise.all([
     getAllProfiles(orgId),

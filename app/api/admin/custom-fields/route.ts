@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getAuth } from "@/lib/auth";
+import { orgIdWithPermission } from "@/lib/auth";
 import { createCustomFieldDef, deleteCustomFieldDef } from "@/lib/data";
 import { isFieldEntity } from "@/lib/fields";
 import type { FieldType } from "@/lib/types";
@@ -9,10 +9,8 @@ export const dynamic = "force-dynamic";
 
 const TYPES: FieldType[] = ["text", "number", "select", "date", "checkbox"];
 
-async function adminOrg(): Promise<string | null> {
-  const auth = await getAuth();
-  if (!auth || auth.role !== "admin" || !auth.orgId) return null;
-  return auth.orgId;
+function adminOrg(): Promise<string | null> {
+  return orgIdWithPermission("customfields.manage");
 }
 
 // Admin defines a custom field.

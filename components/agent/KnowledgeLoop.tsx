@@ -20,7 +20,15 @@ interface Draft {
   category: string;
 }
 
-export default function KnowledgeLoop({ resolved, drafts }: { resolved: ResolvedTicket[]; drafts: Draft[] }) {
+export default function KnowledgeLoop({
+  resolved,
+  drafts,
+  canPublish,
+}: {
+  resolved: ResolvedTicket[];
+  drafts: Draft[];
+  canPublish: boolean;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -98,9 +106,13 @@ export default function KnowledgeLoop({ resolved, drafts }: { resolved: Resolved
               <div className="mt-2 text-sm font-medium">{d.title}</div>
               <p className="mt-1 line-clamp-3 text-xs text-muted">{d.body}</p>
               <div className="mt-3">
-                <Button size="sm" onClick={() => publish(d.id)} disabled={busy !== null}>
-                  {busy === `pub:${d.id}` ? "Publishing…" : "Publish"}
-                </Button>
+                {canPublish ? (
+                  <Button size="sm" onClick={() => publish(d.id)} disabled={busy !== null}>
+                    {busy === `pub:${d.id}` ? "Publishing…" : "Publish"}
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted">Draft ready — a group admin can publish it.</span>
+                )}
               </div>
             </li>
           ))}

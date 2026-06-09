@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { MODEL_GENERATE, anthropic, parseJson, textOf } from "@/lib/anthropic";
 import { getTicket, getTicketMessages, createDraftFromTicket, type DraftInput } from "@/lib/data";
-import { getStaffOrgId } from "@/lib/auth";
+import { orgIdWithPermission } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const orgId = await getStaffOrgId();
-  if (!orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const orgId = await orgIdWithPermission("kb.create");
+  if (!orgId) return Response.json({ error: "You don't have permission to create articles." }, { status: 403 });
   const ticket = await getTicket(orgId, ticketId);
   if (!ticket) return Response.json({ error: "Ticket not found" }, { status: 404 });
   const messages = await getTicketMessages(orgId, ticketId);

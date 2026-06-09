@@ -1,6 +1,7 @@
 import { CheckCircle2, Sparkles, Eye, BookOpen, ArrowRight } from "lucide-react";
 import { getResolvedTickets, getDraftArticles } from "@/lib/data";
 import { getAuth, NO_ORG } from "@/lib/auth";
+import { can } from "@/lib/rbac";
 import KnowledgeLoop from "@/components/agent/KnowledgeLoop";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ const FLOW = [
 export default async function KnowledgeLoopPage() {
   const me = await getAuth();
   const orgId = me?.orgId ?? NO_ORG;
+  const canPublish = can({ role: me?.role ?? "customer", groupRole: me?.groupRole ?? null }, "kb.publish");
   const [resolved, drafts] = await Promise.all([getResolvedTickets(orgId, 10), getDraftArticles(orgId)]);
 
   return (
@@ -39,6 +41,7 @@ export default async function KnowledgeLoopPage() {
 
       <div className="mt-8">
         <KnowledgeLoop
+          canPublish={canPublish}
           resolved={resolved.map((t) => ({ id: t.id, subject: t.subject, intent: t.intent }))}
           drafts={drafts.map((d) => ({ id: d.id, title: d.title, body: d.body, category: d.category }))}
         />

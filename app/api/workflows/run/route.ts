@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getStaffOrgId } from "@/lib/auth";
+import { orgIdWithPermission } from "@/lib/auth";
 import { runTicketCreated } from "@/lib/workflows";
 
 export const runtime = "nodejs";
@@ -9,8 +9,8 @@ export const maxDuration = 60;
 // Manually (re-)run the ticket.created workflows for a ticket — for the agent
 // to trigger automation on an existing ticket.
 export async function POST(req: NextRequest) {
-  const orgId = await getStaffOrgId();
-  if (!orgId) return Response.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  const orgId = await orgIdWithPermission("workflows.manage");
+  if (!orgId) return Response.json({ ok: false, error: "You don't have permission to run workflows." }, { status: 403 });
   let ticketId: unknown;
   try {
     ({ ticketId } = await req.json());

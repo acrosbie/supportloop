@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getAuth } from "@/lib/auth";
+import { orgIdWithPermission } from "@/lib/auth";
 import { importArticles } from "@/lib/data";
 
 export const runtime = "nodejs";
@@ -43,9 +43,9 @@ function parseMarkdown(md: string, defaultCategory?: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await getAuth();
-  if (!auth || auth.role !== "admin" || !auth.orgId) {
-    return Response.json({ error: "Admin only" }, { status: 403 });
+  const orgId = await orgIdWithPermission("kb.publish");
+  if (!orgId) {
+    return Response.json({ error: "You don't have permission to import + publish articles." }, { status: 403 });
   }
   let markdown: string | undefined;
   let category: string | undefined;
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Couldn't find an article — add a title line" }, { status: 400 });
   }
   try {
-    const count = await importArticles(auth.orgId, articles);
+    const count = await importArticles(orgId, articles);
     return Response.json({ ok: true, count });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : "Import failed" }, { status: 500 });
