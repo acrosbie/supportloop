@@ -83,6 +83,7 @@ export interface Customer {
   locale: string | null;
   external_id: string | null;
   last_seen_at: string | null;
+  account_role: string;
   custom_fields: Record<string, unknown>;
   created_at: string;
 }
@@ -162,6 +163,15 @@ export interface Profile {
   role: "customer" | "agent" | "admin";
   display_name: string | null;
   avatar_url: string | null;
+  group_id: string | null;
+  group_role: string | null;
+  created_at: string;
+}
+
+export interface Group {
+  id: string;
+  org_id: string;
+  name: string;
   created_at: string;
 }
 

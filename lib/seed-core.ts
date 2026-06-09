@@ -637,6 +637,44 @@ async function seedWorkflows(sb: SupabaseClient, orgId: string): Promise<void> {
   await insertAll(sb, "workflows", rows);
 }
 
+/** Seed RBAC: agent groups + roles, and one account-admin per account.
+ *  Best-effort (needs 0011). */
+async function seedRbac(sb: SupabaseClient, orgId: string, agentId: string | null): Promise<void> {
+  const { error } = await sb.from("groups").select("id").limit(1);
+  if (error) return; // 0011 not applied
+  await sb.from("groups").delete().eq("org_id", orgId);
+  const groups = [
+    { id: randomUUID(), org_id: orgId, name: "Tier 1 Support" },
+    { id: randomUUID(), org_id: orgId, name: "Billing" },
+    { id: randomUUID(), org_id: orgId, name: "Technical" },
+  ];
+  await insertAll(sb, "groups", groups);
+
+  // Put the demo agent in Tier 1 as a group admin (so existing flows keep their
+  // KB-publish + ops powers; demote to 'member' to see the restrictions).
+  if (agentId) {
+    await sb.auth.admin.updateUserById(agentId, {
+      app_metadata: { role: "agent", org_id: orgId, group_id: groups[0].id, group_role: "admin" },
+    });
+    await sb.from("profiles").update({ group_id: groups[0].id, group_role: "admin" }).eq("id", agentId);
+  }
+
+  // First contact on each account is its account admin.
+  const { data: custs } = await sb
+    .from("customers")
+    .select("id,account_id")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: true });
+  const seen = new Set<string>();
+  for (const c of custs ?? []) {
+    const acct = c.account_id as string | null;
+    if (acct && !seen.has(acct)) {
+      seen.add(acct);
+      await sb.from("customers").update({ account_role: "admin" }).eq("id", c.id as string);
+    }
+  }
+}
+
 /**
  * Ensure the three one-click demo accounts exist with the right role + password.
  * Idempotent — safe to run on every seed/reset. Returns role -> user id.
@@ -793,6 +831,9 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   // Workflows (ticket.created intake automation).
   await seedWorkflows(sb, orgId);
 
+  // RBAC: agent groups/roles + account roles.
+  await seedRbac(sb, orgId, demoIds.agent ?? null);
+
   // Dogfood: seed the SupportLoop org with its own real product data.
   const sl = await seedSupportLoopOrg(sb);
 
@@ -909,6 +950,7 @@ async function seedSupportLoopOrg(sb: SupabaseClient): Promise<{ kb_articles: nu
   await insertAll(sb, "canned_responses", canned);
 
   await seedWorkflows(sb, orgId);
+  await seedRbac(sb, orgId, ids.agent ?? null);
 
   return { kb_articles: kbRows.length, tickets: tickets.length };
 }

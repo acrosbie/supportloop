@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { can, type Actor } from "@/lib/rbac";
 
 // Refreshes the Supabase session on every request and gates the operator areas
 // (/agent, /ops) by role. Role lives in the JWT (app_metadata.role).
@@ -35,10 +36,14 @@ export async function middleware(req: NextRequest) {
       url.searchParams.set("next", path);
       return NextResponse.redirect(url);
     }
-    const role = user.app_metadata?.role as string | undefined;
-    const allowed = role === "agent" || role === "admin";
-    const adminOnly = path.startsWith("/ops/admin");
-    if (!allowed || (adminOnly && role !== "admin")) {
+    const role = (user.app_metadata?.role as string) || "customer";
+    const groupRole = (user.app_metadata?.group_role as "member" | "admin" | null) || null;
+    const actor: Actor = { role: role as Actor["role"], groupRole };
+    let allowed: boolean;
+    if (path.startsWith("/ops/admin")) allowed = can(actor, "settings.manage");
+    else if (path.startsWith("/ops")) allowed = can(actor, "ops.view");
+    else allowed = role === "agent" || role === "admin"; // /agent — any agent or admin
+    if (!allowed) {
       const url = req.nextUrl.clone();
       url.pathname = "/login";
       url.searchParams.set("denied", "1");
