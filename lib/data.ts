@@ -7,6 +7,7 @@ import { supabaseAdmin } from "./supabase";
 import { embed, embedOne, toVector } from "./embeddings";
 import { matchTickets, type TicketMatch } from "./retrieve";
 import { ENTITY_TABLE, STANDARD_FIELDS, isStandardKey } from "./fields";
+import { firstResponseSla, resolutionSla, activeSla } from "./sla";
 import type {
   KbArticle,
   Ticket,
@@ -626,6 +627,53 @@ export async function assignUserGroup(
     .eq("id", userId)
     .eq("org_id", orgId);
   if (error) throw new Error(`assignUserGroup: ${error.message}`);
+}
+
+// ---------------------------------------------------------------------------
+// SLA compliance summary (for the ops dashboard)
+// ---------------------------------------------------------------------------
+export interface SlaSummary {
+  firstResponseRate: number | null;
+  resolutionRate: number | null;
+  breachedOpen: number;
+}
+
+export async function getSlaSummary(orgId: string): Promise<SlaSummary> {
+  try {
+    const { data } = await supabaseAdmin()
+      .from("tickets")
+      .select("status,priority,created_at,first_response_at,resolved_at")
+      .eq("org_id", orgId);
+    const rows = (data ?? []) as Pick<Ticket, "status" | "priority" | "created_at" | "first_response_at" | "resolved_at">[];
+    const now = Date.now();
+    let frEval = 0;
+    let frMet = 0;
+    let resEval = 0;
+    let resMet = 0;
+    let breached = 0;
+    for (const r of rows) {
+      const t = r as unknown as Ticket;
+      const fr = firstResponseSla(t, now);
+      if (fr.state === "met") {
+        frEval++;
+        frMet++;
+      } else if (fr.state === "breached") {
+        frEval++;
+      }
+      if (t.resolved_at) {
+        resEval++;
+        if (resolutionSla(t, now).state === "met") resMet++;
+      }
+      if (t.status !== "resolved" && t.status !== "deflected" && activeSla(t, now).state === "breached") breached++;
+    }
+    return {
+      firstResponseRate: frEval ? frMet / frEval : null,
+      resolutionRate: resEval ? resMet / resEval : null,
+      breachedOpen: breached,
+    };
+  } catch {
+    return { firstResponseRate: null, resolutionRate: null, breachedOpen: 0 };
+  }
 }
 
 export async function setUserRole(orgId: string, userId: string, role: "customer" | "agent" | "admin"): Promise<void> {
