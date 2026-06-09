@@ -18,6 +18,7 @@ Last updated: 2026-06-07
 - **Standard + custom fields** (0008) — CRM fields on customers/accounts; an admin **custom-field builder** (text/number/select/date/checkbox) for customer/account/ticket/doc; **editable inline** everywhere.
 - **Rigor** — vitest unit tests, GitHub Actions CI.
 - **Workflow engine** (0009/0010) — **v1:** `ticket.created` runs an LLM-in-the-loop sequence (triage → prioritize-by-account → grounded draft → extract custom fields). **v2:** rule **conditions**, the `csat.submitted` trigger, and **account/ticket-mutating actions** (escalate, flag account at-risk, note) — e.g. *low CSAT → escalate + flip the account to at-risk*. Per-ticket **Automation** panel + Ops **Workflows** management (toggle, condition, steps, run history).
+- **Customer-site control** — live-chat escalation *inside the chatbot* (not a separate tab), a roomier/larger-type help center, per-component toggles (assistant / live chat / community), and custom-domain (CNAME) config.
 
 ---
 
@@ -63,7 +64,13 @@ Let a customer's **end users authenticate** into SupportLoop (hosted help center
 - **Security:** per-org API keys (hashed, scoped), JWT signing secret in `organizations.settings`, rate limiting.
 - **Phasing:** P1 per-org API key + provisioning REST → P2 JWT identity for widget/help center → P3 auto-provision + `identify` → P4 outbound webhooks + SCIM-style sync.
 
-### 3. Other planned
+### 3. Customer-controlled site rollout & custom domains
+
+Let customers own their help-center rollout, component by component.
+- **Shipped start:** per-component toggles (assistant / live chat / community) + a custom-domain (CNAME) config UI.
+- **Next:** real custom-domain provisioning (Vercel Domains API + verification), logo/theme controls beyond accent, section ordering + custom pages, a preview→publish flow, and multiple help centers per org.
+
+### 4. Other planned
 
 - **Outbound webhooks** (event bus) — also the substrate for external workflow triggers.
 - **SLA engine** + breach triggers (feeds #1).
