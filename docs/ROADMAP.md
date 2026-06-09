@@ -17,7 +17,7 @@ Last updated: 2026-06-07
 - **Customers + accounts** — first-class user + account objects (0007), relationship views (a user's tickets, an account's people + tickets), agent-actions tied to the real customer.
 - **Standard + custom fields** (0008) — CRM fields on customers/accounts; an admin **custom-field builder** (text/number/select/date/checkbox) for customer/account/ticket/doc; **editable inline** everywhere.
 - **Rigor** — vitest unit tests, GitHub Actions CI.
-- **Workflow engine v1** (0009) — the `ticket.created` trigger runs an LLM-in-the-loop step sequence (triage → prioritize-by-account → grounded draft → extract custom fields); per-ticket **Automation** panel + Ops **Workflows** management (enable toggle, step view, run history).
+- **Workflow engine** (0009/0010) — **v1:** `ticket.created` runs an LLM-in-the-loop sequence (triage → prioritize-by-account → grounded draft → extract custom fields). **v2:** rule **conditions**, the `csat.submitted` trigger, and **account/ticket-mutating actions** (escalate, flag account at-risk, note) — e.g. *low CSAT → escalate + flip the account to at-risk*. Per-ticket **Automation** panel + Ops **Workflows** management (toggle, condition, steps, run history).
 
 ---
 
@@ -47,7 +47,7 @@ Events (**triggers**) fire **action sequences** that can read and modify the **t
   - **Low CSAT** — escalate + create follow-up + decrement account health.
   - **Account risk** — usage/sentiment signals → CSM task + at-risk flag.
 - **Architecture sketch:** `workflows` (trigger + steps as JSON, org-scoped) + `workflow_runs` (execution log) tables; a server **executor** running steps sequentially — deterministic steps via the data layer, LLM steps via `lib/anthropic`, reusing `lib/agent-tools.ts` as action nodes; every LLM step traced via the existing `ai_trace`. Visual builder comes later.
-- **Status:** ✅ **v1 shipped** — `ticket.created` intake (triage → prioritize-by-account → grounded draft → extract custom fields), run log, and Ops management. **Next:** more triggers (status change, CSAT, SLA-breach, inbound webhook), rule **conditions**, account/user-mutating actions, async execution (queue/`waitUntil`), and a visual builder.
+- **Status:** ✅ **v1 + v2 shipped** — intake automation, rule **conditions**, the `csat.submitted` trigger, and account/ticket-mutating actions (escalate, flag account at-risk). **Next:** more triggers (status change, SLA-breach, inbound webhook), customer-mutating actions, async execution (queue/`waitUntil`), and a visual builder.
 
 ### 2. External authentication + user/account provisioning  ⭐ headline bet
 
