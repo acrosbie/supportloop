@@ -18,7 +18,9 @@ import AgentActions from "@/components/agent/AgentActions";
 import CustomerPanel from "@/components/agent/CustomerPanel";
 import FieldsEditor from "@/components/FieldsEditor";
 import AutomationPanel from "@/components/agent/AutomationPanel";
+import SlaPanel from "@/components/agent/SlaPanel";
 import { getWorkflowRunsForTicket } from "@/lib/workflows";
+import { awaitingAgentSince } from "@/lib/sla";
 import LiveChatRoom from "@/components/LiveChatRoom";
 import { Badge, PriorityPill, StatusPill } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -43,6 +45,7 @@ export default async function TicketDetail({ params }: { params: { id: string } 
   ]);
   const resolved = ticket.status === "resolved" || ticket.status === "deflected";
   const requester = ticket.requester_email || "anonymous";
+  const awaitingSince = awaitingAgentSince(messages);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-6">
@@ -128,6 +131,7 @@ export default async function TicketDetail({ params }: { params: { id: string } 
             slaDueAt={ticket.sla_due_at}
             resolved={resolved}
           />
+          <SlaPanel ticket={ticket} awaitingSince={awaitingSince} />
 
           <Copilot
             ticketId={ticket.id}

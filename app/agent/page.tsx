@@ -9,17 +9,16 @@ import { Avatar } from "@/components/ui/avatar";
 import { ChannelIcon } from "@/components/ui/channel-icon";
 import { EmptyState } from "@/components/ui/empty-state";
 import { timeAgo } from "@/lib/utils";
+import { activeSla, formatDuration } from "@/lib/sla";
 
 export const dynamic = "force-dynamic";
 
 function SlaCell({ t }: { t: Ticket }) {
-  if (t.status === "resolved" || t.status === "deflected" || !t.sla_due_at)
-    return <span className="text-xs text-muted">—</span>;
-  const due = new Date(t.sla_due_at).getTime();
-  const now = Date.now();
-  if (now > due) return <Badge tone="danger">Overdue</Badge>;
-  if (due - now < 4 * 3600_000) return <Badge tone="warning">Due soon</Badge>;
-  return <span className="text-xs text-muted">On track</span>;
+  if (t.status === "resolved" || t.status === "deflected") return <span className="text-xs text-muted">—</span>;
+  const sla = activeSla(t);
+  if (sla.state === "breached") return <Badge tone="danger">Overdue {formatDuration(sla.ms)}</Badge>;
+  if (sla.state === "warning") return <Badge tone="warning">Due {formatDuration(sla.ms)}</Badge>;
+  return <span className="text-xs text-muted">On track · {formatDuration(sla.ms)}</span>;
 }
 
 export default async function AgentInbox({
