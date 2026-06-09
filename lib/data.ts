@@ -109,20 +109,35 @@ export async function createTicketFromChat(
 ): Promise<string> {
   const id = randomUUID();
   const subj = subject?.trim() || (message.trim().length > 80 ? message.trim().slice(0, 80) + "…" : message.trim());
-  const { error } = await supabaseAdmin().from("tickets").insert({
-    id,
-    org_id: orgId,
-    subject: subj,
-    body: message,
-    channel,
-    status: "open",
-    urgency: "medium",
-    queue: "Unassigned",
-    was_deflected: false,
-    was_ai_assisted: false,
-    requester_id: requesterId ?? null,
-    requester_email: requesterEmail ?? null,
-  });
+  // Link to an existing customer by email so the customer panel + account-aware
+  // workflows light up. Tolerant: skips silently if the customers table is absent.
+  let customerId: string | null = null;
+  const email = requesterEmail?.trim();
+  if (email) {
+    try {
+      const { data: c } = await supabaseAdmin().from("customers").select("id").eq("org_id", orgId).eq("email", email).maybeSingle();
+      customerId = (c?.id as string) ?? null;
+    } catch {
+      /* customers table not present yet */
+    }
+  }
+  const { error } = await supabaseAdmin()
+    .from("tickets")
+    .insert({
+      id,
+      org_id: orgId,
+      subject: subj,
+      body: message,
+      channel,
+      status: "open",
+      urgency: "medium",
+      queue: "Unassigned",
+      was_deflected: false,
+      was_ai_assisted: false,
+      requester_id: requesterId ?? null,
+      requester_email: requesterEmail ?? null,
+      ...(customerId ? { customer_id: customerId } : {}),
+    });
   if (error) throw new Error(`createTicketFromChat: ${error.message}`);
   await supabaseAdmin().from("ticket_messages").insert({ org_id: orgId, ticket_id: id, role: "customer", body: message });
   await logEvent(orgId, "escalation", id, { source: "chat" });
@@ -776,20 +791,33 @@ export async function createLiveTicket(
   requesterEmail?: string | null
 ): Promise<string> {
   const id = randomUUID();
-  const { error } = await supabaseAdmin().from("tickets").insert({
-    id,
-    org_id: orgId,
-    subject: "Live chat",
-    body: "Customer started a live chat.",
-    channel: "live",
-    status: "open",
-    urgency: "medium",
-    queue: "Unassigned",
-    was_deflected: false,
-    was_ai_assisted: false,
-    requester_id: requesterId ?? null,
-    requester_email: requesterEmail ?? null,
-  });
+  let customerId: string | null = null;
+  const email = requesterEmail?.trim();
+  if (email) {
+    try {
+      const { data: c } = await supabaseAdmin().from("customers").select("id").eq("org_id", orgId).eq("email", email).maybeSingle();
+      customerId = (c?.id as string) ?? null;
+    } catch {
+      /* customers table not present yet */
+    }
+  }
+  const { error } = await supabaseAdmin()
+    .from("tickets")
+    .insert({
+      id,
+      org_id: orgId,
+      subject: "Live chat",
+      body: "Customer started a live chat.",
+      channel: "live",
+      status: "open",
+      urgency: "medium",
+      queue: "Unassigned",
+      was_deflected: false,
+      was_ai_assisted: false,
+      requester_id: requesterId ?? null,
+      requester_email: requesterEmail ?? null,
+      ...(customerId ? { customer_id: customerId } : {}),
+    });
   if (error) throw new Error(`createLiveTicket: ${error.message}`);
   await logEvent(orgId, "escalation", id, { source: "live" });
   return id;
