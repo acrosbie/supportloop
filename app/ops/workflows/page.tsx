@@ -18,6 +18,7 @@ export default async function WorkflowsPage() {
           trigger: w.trigger,
           enabled: w.enabled,
           steps: w.steps,
+          condition: w.condition,
           runCount: w.runCount,
           lastRunAt: w.lastRunAt,
         }))}

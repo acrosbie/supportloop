@@ -574,30 +574,53 @@ function assignCustomerEmails(tickets: GenTicket[], customers: CustomerSeed[]): 
   }
 }
 
-const DEFAULT_WORKFLOW_STEPS = [
+const INTAKE_STEPS = [
   { type: "triage" },
   { type: "priority_by_account" },
   { type: "draft_reply" },
   { type: "extract_fields" },
 ];
+const CSAT_STEPS = [
+  { type: "escalate" },
+  { type: "flag_account_at_risk" },
+  { type: "add_internal_note", message: "Low CSAT — reach out personally and offer to make it right." },
+];
 
-/** Seed the default "New ticket intake" workflow. Best-effort (needs 0009). */
+/** Seed the default workflows. Best-effort: needs 0009; the conditional
+ *  csat.submitted workflow needs 0010 (the condition column). */
 async function seedWorkflows(sb: SupabaseClient, orgId: string): Promise<void> {
   const { error } = await sb.from("workflows").select("id").limit(1);
   if (error) return; // 0009 not applied
+  const { error: condErr } = await sb.from("workflows").select("condition").limit(1);
+  const hasCondition = !condErr; // 0010 applied
   await sb.from("workflow_runs").delete().eq("org_id", orgId);
   await sb.from("workflows").delete().eq("org_id", orgId);
-  await insertAll(sb, "workflows", [
+
+  const rows: Record<string, unknown>[] = [
     {
       id: randomUUID(),
       org_id: orgId,
       name: "New ticket intake",
       trigger: "ticket.created",
       enabled: true,
-      steps: DEFAULT_WORKFLOW_STEPS,
+      steps: INTAKE_STEPS,
       position: 0,
+      ...(hasCondition ? { condition: {} } : {}),
     },
-  ]);
+  ];
+  if (hasCondition) {
+    rows.push({
+      id: randomUUID(),
+      org_id: orgId,
+      name: "Low-CSAT recovery",
+      trigger: "csat.submitted",
+      enabled: true,
+      steps: CSAT_STEPS,
+      position: 1,
+      condition: { all: [{ field: "ticket.csat", op: "lte", value: 2 }] },
+    });
+  }
+  await insertAll(sb, "workflows", rows);
 }
 
 /**

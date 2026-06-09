@@ -13,14 +13,24 @@ const STEP_LABEL: Record<string, string> = {
   priority_by_account: "Prioritize by account",
   draft_reply: "Draft grounded reply",
   extract_fields: "Extract custom fields",
+  escalate: "Escalate ticket",
+  flag_account_at_risk: "Flag account at-risk",
+  add_internal_note: "Add internal note",
 };
+const OP_LABEL: Record<string, string> = { eq: "=", ne: "≠", lt: "<", lte: "≤", gt: ">", gte: "≥", contains: "contains", in: "in" };
 
+interface Predicate {
+  field: string;
+  op: string;
+  value: unknown;
+}
 interface Wf {
   id: string;
   name: string;
   trigger: string;
   enabled: boolean;
   steps: { type: string }[];
+  condition?: { all?: Predicate[] };
   runCount: number;
   lastRunAt: string | null;
 }
@@ -81,6 +91,19 @@ export default function WorkflowsView({ workflows, runs }: { workflows: Wf[]; ru
                     on <span className="font-mono">{w.trigger}</span> · {w.runCount} run{w.runCount === 1 ? "" : "s"}
                     {w.lastRunAt ? ` · last ${new Date(w.lastRunAt).toLocaleDateString()}` : ""}
                   </div>
+                  {w.condition?.all && w.condition.all.length > 0 && (
+                    <div className="mt-1 text-xs text-muted">
+                      when{" "}
+                      {w.condition.all.map((p, i) => (
+                        <span key={i}>
+                          {i > 0 ? " and " : ""}
+                          <span className="font-mono text-foreground/80">
+                            {p.field} {OP_LABEL[p.op] ?? p.op} {String(p.value)}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => toggle(w.id, !w.enabled)}

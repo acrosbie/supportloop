@@ -1,6 +1,8 @@
-// LLM-in-the-loop workflow engine (v1: the ticket.created trigger). A workflow
-// is a trigger + an ordered list of steps; steps are deterministic or LLM-backed
+// LLM-in-the-loop workflow engine. A workflow is a trigger + an optional rule
+// condition + an ordered list of steps; steps are deterministic or LLM-backed
 // and act on the ticket, its customer, and its account. Every run is logged.
+//   v1: ticket.created intake (triage, prioritize, draft, extract).
+//   v2: conditions + the csat.submitted trigger + account/ticket-mutating actions.
 import { supabaseAdmin } from "./supabase";
 import { MODEL_CLASSIFY, MODEL_GENERATE, anthropic, parseJson, textOf } from "./anthropic";
 import { retrieve } from "./retrieve";
@@ -14,11 +16,31 @@ import {
   updateEntityFields,
   logAiTrace,
   type Triage,
+  type CustomerContext,
 } from "./data";
+import type { Ticket } from "./types";
 
-export type WorkflowStepType = "triage" | "priority_by_account" | "draft_reply" | "extract_fields";
+export type WorkflowTrigger = "ticket.created" | "csat.submitted";
+export type WorkflowStepType =
+  | "triage"
+  | "priority_by_account"
+  | "draft_reply"
+  | "extract_fields"
+  | "escalate"
+  | "flag_account_at_risk"
+  | "add_internal_note";
+
 export interface WorkflowStep {
   type: WorkflowStepType;
+  message?: string;
+}
+export interface Predicate {
+  field: string;
+  op: string;
+  value: unknown;
+}
+export interface Condition {
+  all?: Predicate[];
 }
 export interface WorkflowDef {
   id: string;
@@ -26,6 +48,7 @@ export interface WorkflowDef {
   trigger: string;
   enabled: boolean;
   steps: WorkflowStep[];
+  condition: Condition;
 }
 export interface StepLog {
   step: string;
@@ -45,61 +68,122 @@ export const STEP_LABEL: Record<WorkflowStepType, string> = {
   priority_by_account: "Prioritize by account",
   draft_reply: "Draft grounded reply",
   extract_fields: "Extract custom fields",
+  escalate: "Escalate ticket",
+  flag_account_at_risk: "Flag account at-risk",
+  add_internal_note: "Add internal note",
 };
+
+function normalizeWorkflow(w: Record<string, unknown>): WorkflowDef {
+  return {
+    id: w.id as string,
+    name: w.name as string,
+    trigger: w.trigger as string,
+    enabled: w.enabled as boolean,
+    steps: ((w.steps as WorkflowStep[]) ?? []).filter((s) => s && typeof s.type === "string"),
+    condition: (w.condition as Condition) ?? {},
+  };
+}
 
 async function getEnabledWorkflows(orgId: string, trigger: string): Promise<WorkflowDef[]> {
   try {
     const { data } = await supabaseAdmin()
       .from("workflows")
-      .select("id,name,trigger,enabled,steps")
+      .select("*")
       .eq("org_id", orgId)
       .eq("trigger", trigger)
       .eq("enabled", true)
       .order("position", { ascending: true });
-    return (data ?? []).map((w) => ({
-      id: w.id as string,
-      name: w.name as string,
-      trigger: w.trigger as string,
-      enabled: w.enabled as boolean,
-      steps: ((w.steps as WorkflowStep[]) ?? []).filter((s) => s && typeof s.type === "string"),
-    }));
+    return (data ?? []).map((w) => normalizeWorkflow(w as Record<string, unknown>));
   } catch {
     return [];
   }
 }
 
-async function recordRun(
-  orgId: string,
-  wf: WorkflowDef,
-  ticketId: string,
-  status: string,
-  steps: StepLog[]
-): Promise<void> {
+async function recordRun(orgId: string, wf: WorkflowDef, ticketId: string, status: string, steps: StepLog[]): Promise<void> {
   try {
-    await supabaseAdmin().from("workflow_runs").insert({
-      org_id: orgId,
-      workflow_id: wf.id,
-      workflow_name: wf.name,
-      ticket_id: ticketId,
-      status,
-      steps,
-    });
+    await supabaseAdmin()
+      .from("workflow_runs")
+      .insert({ org_id: orgId, workflow_id: wf.id, workflow_name: wf.name, ticket_id: ticketId, status, steps });
   } catch {
     /* logging is best-effort */
   }
 }
 
+// --- Context + conditions --------------------------------------------------
+
+interface RunContext {
+  ticket: Ticket;
+  ctx: CustomerContext | null;
+}
+
+async function loadContext(orgId: string, ticketId: string): Promise<RunContext | null> {
+  const [ticket, ctx] = await Promise.all([getTicket(orgId, ticketId), getCustomerContext(orgId, ticketId)]);
+  if (!ticket) return null;
+  return { ticket, ctx };
+}
+
+function resolveField(field: string, c: RunContext): unknown {
+  const dot = field.indexOf(".");
+  const root = dot === -1 ? field : field.slice(0, dot);
+  const rest = dot === -1 ? "" : field.slice(dot + 1);
+  if (root === "ticket") {
+    if (rest.startsWith("custom_fields.")) return (c.ticket.custom_fields ?? {})[rest.slice("custom_fields.".length)];
+    return (c.ticket as unknown as Record<string, unknown>)[rest];
+  }
+  if (root === "account") return c.ctx?.account ? (c.ctx.account as unknown as Record<string, unknown>)[rest] : undefined;
+  if (root === "customer") return c.ctx?.customer ? (c.ctx.customer as unknown as Record<string, unknown>)[rest] : undefined;
+  return undefined;
+}
+
+function evalPredicate(op: string, actual: unknown, expected: unknown): boolean {
+  switch (op) {
+    case "eq":
+      return actual === expected || String(actual) === String(expected);
+    case "ne":
+      return String(actual) !== String(expected);
+    case "lt":
+      return Number(actual) < Number(expected);
+    case "lte":
+      return Number(actual) <= Number(expected);
+    case "gt":
+      return Number(actual) > Number(expected);
+    case "gte":
+      return Number(actual) >= Number(expected);
+    case "contains":
+      return String(actual ?? "").toLowerCase().includes(String(expected).toLowerCase());
+    case "in":
+      return Array.isArray(expected) && expected.map(String).includes(String(actual));
+    default:
+      return false;
+  }
+}
+
+function evalCondition(condition: Condition, c: RunContext): boolean {
+  const all = condition?.all;
+  if (!all || all.length === 0) return true;
+  return all.every((p) => evalPredicate(p.op, resolveField(p.field, c), p.value));
+}
+
+// --- Executor --------------------------------------------------------------
+
 type StepResult = { detail: string; skipped?: boolean };
 
-/** Run all enabled ticket.created workflows against a ticket. Best-effort. */
-export async function runTicketCreated(orgId: string, ticketId: string): Promise<void> {
-  const workflows = await getEnabledWorkflows(orgId, "ticket.created");
+export async function runWorkflows(orgId: string, trigger: WorkflowTrigger, ticketId: string): Promise<void> {
+  const workflows = await getEnabledWorkflows(orgId, trigger);
+  if (!workflows.length) return;
+  const context = await loadContext(orgId, ticketId);
+  if (!context) return;
+
   for (const wf of workflows) {
+    if (!evalCondition(wf.condition, context)) {
+      await recordRun(orgId, wf, ticketId, "skipped", [{ step: "Condition", status: "skipped", detail: "condition not met" }]);
+      continue;
+    }
     const log: StepLog[] = [];
     let status = "success";
     for (const step of wf.steps) {
       try {
-        const res = await runStep(orgId, ticketId, step);
+        const res = await runStep(orgId, ticketId, step, context);
         log.push({ step: STEP_LABEL[step.type] ?? step.type, status: res.skipped ? "skipped" : "ok", detail: res.detail });
       } catch (e) {
         log.push({ step: STEP_LABEL[step.type] ?? step.type, status: "error", detail: e instanceof Error ? e.message : "error" });
@@ -110,16 +194,25 @@ export async function runTicketCreated(orgId: string, ticketId: string): Promise
   }
 }
 
-function runStep(orgId: string, ticketId: string, step: WorkflowStep): Promise<StepResult> {
+export const runTicketCreated = (orgId: string, ticketId: string) => runWorkflows(orgId, "ticket.created", ticketId);
+export const runCsatSubmitted = (orgId: string, ticketId: string) => runWorkflows(orgId, "csat.submitted", ticketId);
+
+function runStep(orgId: string, ticketId: string, step: WorkflowStep, context: RunContext): Promise<StepResult> {
   switch (step.type) {
     case "triage":
       return triageStep(orgId, ticketId);
     case "priority_by_account":
-      return priorityStep(orgId, ticketId);
+      return priorityStep(orgId, ticketId, context);
     case "draft_reply":
       return draftStep(orgId, ticketId);
     case "extract_fields":
       return extractStep(orgId, ticketId);
+    case "escalate":
+      return escalateStep(orgId, ticketId, context);
+    case "flag_account_at_risk":
+      return flagAccountStep(orgId, context);
+    case "add_internal_note":
+      return noteStep(orgId, ticketId, step);
     default:
       return Promise.resolve({ detail: "unknown step", skipped: true });
   }
@@ -152,17 +245,17 @@ async function triageStep(orgId: string, ticketId: string): Promise<StepResult> 
   return { detail: `intent=${tri.intent}, urgency=${tri.urgency}, queue=${tri.queue}` };
 }
 
-async function priorityStep(orgId: string, ticketId: string): Promise<StepResult> {
-  const [ticket, ctx] = await Promise.all([getTicket(orgId, ticketId), getCustomerContext(orgId, ticketId)]);
+async function priorityStep(orgId: string, ticketId: string, c: RunContext): Promise<StepResult> {
+  const ticket = await getTicket(orgId, ticketId);
   if (!ticket) return { detail: "ticket not found", skipped: true };
-  const plan = ctx?.account?.plan?.toLowerCase();
-  const atRisk = ctx?.account?.health === "at_risk" || ctx?.account?.health === "churning";
+  const plan = c.ctx?.account?.plan?.toLowerCase();
+  const atRisk = c.ctx?.account?.health === "at_risk" || c.ctx?.account?.health === "churning";
   let priority = ticket.priority;
   if (plan === "enterprise" || atRisk) priority = "urgent";
   else if (plan === "business" || ticket.urgency === "high") priority = "high";
   if (priority === ticket.priority) return { detail: `priority unchanged (${priority})`, skipped: true };
   await supabaseAdmin().from("tickets").update({ priority }).eq("id", ticketId).eq("org_id", orgId);
-  const why = atRisk ? "at-risk account" : ctx?.account ? `${ctx.account.name} · ${ctx.account.plan}` : `urgency ${ticket.urgency}`;
+  const why = atRisk ? "at-risk account" : c.ctx?.account ? `${c.ctx.account.name} · ${c.ctx.account.plan}` : `urgency ${ticket.urgency}`;
   return { detail: `priority → ${priority} (${why})` };
 }
 
@@ -238,6 +331,29 @@ async function extractStep(orgId: string, ticketId: string): Promise<StepResult>
   return { detail: `set ${Object.entries(custom).map(([k, v]) => `${k}=${v}`).join(", ")}` };
 }
 
+async function escalateStep(orgId: string, ticketId: string, c: RunContext): Promise<StepResult> {
+  const reopened = c.ticket.status === "resolved" || c.ticket.status === "deflected";
+  const priority = c.ticket.priority === "urgent" ? "urgent" : "high";
+  const patch: Record<string, unknown> = { priority };
+  if (reopened) patch.status = "assisted";
+  await supabaseAdmin().from("tickets").update(patch).eq("id", ticketId).eq("org_id", orgId);
+  await appendAgentReply(orgId, ticketId, "⚠️ Escalated by workflow — please follow up with the customer.", true);
+  return { detail: `priority → ${priority}${reopened ? ", reopened" : ""}` };
+}
+
+async function flagAccountStep(orgId: string, c: RunContext): Promise<StepResult> {
+  if (!c.ctx?.account) return { detail: "no account linked", skipped: true };
+  if (c.ctx.account.health === "at_risk") return { detail: `${c.ctx.account.name} already at-risk`, skipped: true };
+  await supabaseAdmin().from("accounts").update({ health: "at_risk" }).eq("id", c.ctx.account.id).eq("org_id", orgId);
+  return { detail: `${c.ctx.account.name} health → at_risk` };
+}
+
+async function noteStep(orgId: string, ticketId: string, step: WorkflowStep): Promise<StepResult> {
+  const msg = typeof step.message === "string" && step.message.trim() ? step.message.trim() : "Note added by workflow.";
+  await appendAgentReply(orgId, ticketId, `📝 ${msg}`, true);
+  return { detail: "internal note added" };
+}
+
 // --- Reads for the UI ------------------------------------------------------
 
 export async function getWorkflowRunsForTicket(orgId: string, ticketId: string): Promise<WorkflowRunView[]> {
@@ -268,11 +384,7 @@ export interface WorkflowListItem extends WorkflowDef {
 export async function listWorkflows(orgId: string): Promise<WorkflowListItem[]> {
   try {
     const sb = supabaseAdmin();
-    const { data: wfs } = await sb
-      .from("workflows")
-      .select("id,name,trigger,enabled,steps")
-      .eq("org_id", orgId)
-      .order("position", { ascending: true });
+    const { data: wfs } = await sb.from("workflows").select("*").eq("org_id", orgId).order("position", { ascending: true });
     if (!wfs?.length) return [];
     const { data: runs } = await sb.from("workflow_runs").select("workflow_id,created_at").eq("org_id", orgId);
     const countBy = new Map<string, number>();
@@ -284,15 +396,10 @@ export async function listWorkflows(orgId: string): Promise<WorkflowListItem[]> 
       const at = r.created_at as string;
       if (!lastBy.has(wid) || at > (lastBy.get(wid) as string)) lastBy.set(wid, at);
     }
-    return wfs.map((w) => ({
-      id: w.id as string,
-      name: w.name as string,
-      trigger: w.trigger as string,
-      enabled: w.enabled as boolean,
-      steps: ((w.steps as WorkflowStep[]) ?? []).filter((s) => s && typeof s.type === "string"),
-      runCount: countBy.get(w.id as string) ?? 0,
-      lastRunAt: lastBy.get(w.id as string) ?? null,
-    }));
+    return wfs.map((w) => {
+      const def = normalizeWorkflow(w as Record<string, unknown>);
+      return { ...def, runCount: countBy.get(def.id) ?? 0, lastRunAt: lastBy.get(def.id) ?? null };
+    });
   } catch {
     return [];
   }
