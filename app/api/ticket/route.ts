@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createTicketFromChat } from "@/lib/data";
 import { runTicketCreated } from "@/lib/workflows";
+import { runInBackground } from "@/lib/async-run";
 import { getAuth } from "@/lib/auth";
 import { resolveViewerOrgId, getOrgIdBySlug } from "@/lib/org";
 
@@ -36,9 +37,9 @@ export async function POST(req: NextRequest) {
       auth?.email ?? email ?? null,
       channel ?? "chat"
     );
-    // Fire the ticket.created workflows (triage, route, draft, extract). Awaited
-    // so it completes in this serverless invocation; never blocks the response.
-    await runTicketCreated(orgId, ticketId).catch(() => {});
+    // Fire the ticket.created workflows (triage, route, draft, extract) AFTER the
+    // response — keeps ticket submission snappy; waitUntil keeps it running.
+    runInBackground(() => runTicketCreated(orgId, ticketId));
     return Response.json({ ok: true, ticketId });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to create ticket";
