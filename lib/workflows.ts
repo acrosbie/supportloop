@@ -19,9 +19,10 @@ import {
   type CustomerContext,
 } from "./data";
 import { isStandardKey } from "./fields";
+import { firstResponseSla, resolutionSla } from "./sla";
 import type { Ticket } from "./types";
 
-export type WorkflowTrigger = "ticket.created" | "csat.submitted";
+export type WorkflowTrigger = "ticket.created" | "csat.submitted" | "sla.breach";
 export type WorkflowStepType =
   | "triage"
   | "priority_by_account"
@@ -201,6 +202,35 @@ export async function runWorkflows(orgId: string, trigger: WorkflowTrigger, tick
 
 export const runTicketCreated = (orgId: string, ticketId: string) => runWorkflows(orgId, "ticket.created", ticketId);
 export const runCsatSubmitted = (orgId: string, ticketId: string) => runWorkflows(orgId, "csat.submitted", ticketId);
+
+/** Scan open tickets for first-response/resolution breaches and fire the
+ *  sla.breach workflows once per ticket (deduped via tickets.sla_breached_at).
+ *  Returns the number of tickets that newly breached. Best-effort (needs 0012). */
+export async function runSlaSweep(orgId: string): Promise<number> {
+  try {
+    const sb = supabaseAdmin();
+    const { data, error } = await sb
+      .from("tickets")
+      .select("id,status,priority,created_at,first_response_at,resolved_at,sla_breached_at")
+      .eq("org_id", orgId)
+      .in("status", ["open", "assisted"]);
+    if (error) return 0; // 0012 not applied
+    const now = Date.now();
+    let fired = 0;
+    for (const r of data ?? []) {
+      if (r.sla_breached_at) continue; // already handled
+      const t = r as unknown as Ticket;
+      if (firstResponseSla(t, now).state === "breached" || resolutionSla(t, now).state === "breached") {
+        await sb.from("tickets").update({ sla_breached_at: new Date(now).toISOString() }).eq("id", r.id).eq("org_id", orgId);
+        await runWorkflows(orgId, "sla.breach", r.id as string).catch(() => {});
+        fired++;
+      }
+    }
+    return fired;
+  } catch {
+    return 0;
+  }
+}
 
 function runStep(orgId: string, ticketId: string, step: WorkflowStep, context: RunContext): Promise<StepResult> {
   switch (step.type) {

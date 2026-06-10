@@ -589,6 +589,10 @@ const HAPPY_STEPS = [
   { type: "set_customer_field", field: "lifecycle_stage", value: "Active" },
   { type: "add_internal_note", message: "Happy customer (CSAT ≥ 4) — candidate for a testimonial or referral." },
 ];
+const SLA_STEPS = [
+  { type: "escalate" },
+  { type: "add_internal_note", message: "SLA breached — prioritize this ticket and update the customer." },
+];
 
 /** Seed the default workflows. Best-effort: needs 0009; the conditional
  *  csat.submitted workflow needs 0010 (the condition column). */
@@ -634,6 +638,16 @@ async function seedWorkflows(sb: SupabaseClient, orgId: string): Promise<void> {
       condition: { all: [{ field: "ticket.csat", op: "gte", value: 4 }] },
     });
   }
+  rows.push({
+    id: randomUUID(),
+    org_id: orgId,
+    name: "SLA breach response",
+    trigger: "sla.breach",
+    enabled: true,
+    steps: SLA_STEPS,
+    position: 3,
+    ...(hasCondition ? { condition: {} } : {}),
+  });
   await insertAll(sb, "workflows", rows);
 }
 

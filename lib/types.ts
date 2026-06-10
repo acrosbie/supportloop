@@ -42,6 +42,7 @@ export interface Ticket {
   assignee_id: string | null;
   tags: string[];
   sla_due_at: string | null;
+  sla_breached_at: string | null;
   first_response_at: string | null;
   created_at: string;
   resolved_at: string | null;

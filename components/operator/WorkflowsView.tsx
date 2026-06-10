@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Workflow as WorkflowIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,22 @@ interface Run {
 export default function WorkflowsView({ workflows, runs }: { workflows: Wf[]; runs: Run[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
+  const [sweeping, setSweeping] = useState(false);
+
+  async function sweep() {
+    setSweeping(true);
+    try {
+      const r = await fetch("/api/sla/sweep", { method: "POST" });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+      toast.success(j.fired > 0 ? `Fired ${j.fired} SLA-breach workflow${j.fired === 1 ? "" : "s"}` : "No new SLA breaches");
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setSweeping(false);
+    }
+  }
 
   async function toggle(id: string, enabled: boolean) {
     setBusy(id);
@@ -69,9 +86,14 @@ export default function WorkflowsView({ workflows, runs }: { workflows: Wf[]; ru
 
   return (
     <div>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Workflows</h1>
-        <p className="mt-1 text-muted">Automations that run on a trigger — LLM + deterministic steps acting on the ticket, customer, and account.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Workflows</h1>
+          <p className="mt-1 text-muted">Automations that run on a trigger — LLM + deterministic steps acting on the ticket, customer, and account.</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={sweep} disabled={sweeping}>
+          {sweeping ? "Sweeping…" : "Run SLA sweep"}
+        </Button>
       </div>
 
       {workflows.length === 0 ? (
