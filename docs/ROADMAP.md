@@ -10,7 +10,7 @@ Last updated: 2026-06-07
 
 - **Multi-tenant foundation** — orgs, org-scoped data layer, role-based access, RLS hardening (0006).
 - **RBAC** (0011) — agent **groups** + group roles (member / group-admin), customer **account roles** (admin / member), and a pure permission model (`lib/rbac.ts`) enforced across KB (create/edit/publish/delete), ops automation, custom fields, settings & team — plus an admin team/group management UI and a `can()` test suite.
-- **SLA engine** — first-response, ongoing next-response & resolution clocks (priority-based targets); per-ticket Service-levels panel, an inbox SLA badge with time-remaining, and dashboard compliance KPIs (`lib/sla.ts`, tested).
+- **SLA engine** — first-response, ongoing next-response & resolution clocks (priority-based targets); per-ticket Service-levels panel, inbox SLA badge, dashboard compliance KPIs, and an **`sla.breach` workflow trigger** (a swept job — manual button + Vercel cron — that fires automation once per breached ticket) (`lib/sla.ts`, tested).
 - **Customer self-service** — branded hosted help center, community, embeddable widget, grounded RAG chat that **escalates instead of hallucinating** (similarity guardrail, per-org threshold).
 - **Operator console** — inbox/queues, ticket detail, triage, grounded draft replies, canned macros, knowledge loop (resolved ticket → drafted article).
 - **AI depth** — AI insights (emerging themes + weekly narrative), **agent copilot** (summary, next action, similar tickets), **agentic tool-use** (investigate → propose refund → human-approved), **AI observability** (per-call cost/latency/grounding traces), **evals + faithfulness** (LLM-as-judge hallucination check).
@@ -27,7 +27,7 @@ Last updated: 2026-06-07
 ## 🔜 Near-term (personalization payoffs from the customer/account model)
 
 - **VIP / at-risk signals** — badges on inbox rows + ticket detail from account `health`/`plan` (e.g. Enterprise or `at_risk` → flag).
-- **Plan-based SLA targets** — derive SLA targets from the account plan + a settings UI (the priority-based SLA engine + dashboard compliance already shipped); feed breaches into a `sla.breach` workflow trigger.
+- **Plan-based SLA targets** — derive SLA targets from the account plan + a settings UI (the priority-based SLA engine, dashboard compliance, and the `sla.breach` workflow trigger already shipped).
 - **Account-level alerts** — "3 open tickets on Acme Corp this week", roll-ups on the account page.
 - **Field UX polish** — required-field enforcement on save, validation per type, bulk edit.
 
@@ -50,7 +50,7 @@ Events (**triggers**) fire **action sequences** that can read and modify the **t
   - **Low CSAT** — escalate + create follow-up + decrement account health.
   - **Account risk** — usage/sentiment signals → CSM task + at-risk flag.
 - **Architecture sketch:** `workflows` (trigger + steps as JSON, org-scoped) + `workflow_runs` (execution log) tables; a server **executor** running steps sequentially — deterministic steps via the data layer, LLM steps via `lib/anthropic`, reusing `lib/agent-tools.ts` as action nodes; every LLM step traced via the existing `ai_trace`. Visual builder comes later.
-- **Status:** ✅ **v1 + v2 shipped** — intake automation, rule **conditions**, the `csat.submitted` trigger, and account/ticket-mutating actions (escalate, flag account at-risk). **Next:** more triggers (status change, SLA-breach, inbound webhook), customer-mutating actions, async execution (queue/`waitUntil`), and a visual builder.
+- **Status:** ✅ **shipped** — intake automation, rule **conditions**, the `csat.submitted` + `sla.breach` triggers, and ticket/account/**customer**-mutating actions (escalate, flag account at-risk, set customer field, note). **Next:** more triggers (`status.changed`, inbound webhook), async execution (queue/`waitUntil`), and a visual builder.
 
 ### 2. External authentication + user/account provisioning  ⭐ headline bet
 
