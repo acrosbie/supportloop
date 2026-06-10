@@ -50,7 +50,7 @@ Events (**triggers**) fire **action sequences** that can read and modify the **t
   - **Low CSAT** — escalate + create follow-up + decrement account health.
   - **Account risk** — usage/sentiment signals → CSM task + at-risk flag.
 - **Architecture sketch:** `workflows` (trigger + steps as JSON, org-scoped) + `workflow_runs` (execution log) tables; a server **executor** running steps sequentially — deterministic steps via the data layer, LLM steps via `lib/anthropic`, reusing `lib/agent-tools.ts` as action nodes; every LLM step traced via the existing `ai_trace`. Visual builder comes later.
-- **Status:** ✅ **shipped** — intake automation, rule **conditions**, **four triggers** (`ticket.created`, `csat.submitted`, `status.changed`, `sla.breach`), ticket/account/**customer**-mutating actions, and a **visual builder** (create / delete workflows in the UI). **Next:** an inbound-webhook trigger and **async execution** (queue / `waitUntil`) so customer-facing requests stay snappy.
+- **Status:** ✅ **shipped** — intake automation, rule **conditions**, **four triggers** (`ticket.created`, `csat.submitted`, `status.changed`, `sla.breach`), ticket/account/**customer**-mutating actions, a **visual builder** (create / delete in the UI), and **async execution** (runs after the response via `@vercel/functions` `waitUntil`, so customer submits stay snappy). **Next:** an **inbound-webhook trigger** (also the substrate for external integrations).
 
 ### 2. External authentication + user/account provisioning  ⭐ headline bet
 
