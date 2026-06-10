@@ -13,6 +13,7 @@ interface Settings {
   liveChat?: boolean;
   community?: boolean;
   webhookSecret?: string;
+  apiKey?: string;
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
@@ -40,6 +41,7 @@ export default function AdminSettings({ initial, slug }: { initial: Settings; sl
   const [liveChat, setLiveChat] = useState(initial.liveChat !== false);
   const [community, setCommunity] = useState(initial.community !== false);
   const [webhookSecret, setWebhookSecret] = useState(initial.webhookSecret || "");
+  const [apiKey, setApiKey] = useState(initial.apiKey || "");
   const [busy, setBusy] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -49,7 +51,7 @@ export default function AdminSettings({ initial, slug }: { initial: Settings; sl
       const r = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ settings: { accent, tagline, threshold, domain, assistant, liveChat, community, webhookSecret } }),
+        body: JSON.stringify({ settings: { accent, tagline, threshold, domain, assistant, liveChat, community, webhookSecret, apiKey } }),
       });
       const j = await r.json();
       if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
@@ -143,6 +145,24 @@ export default function AdminSettings({ initial, slug }: { initial: Settings; sl
           <div className="break-all">POST {origin}/api/hooks/{slug}</div>
           <div>Authorization: Bearer {webhookSecret || "<secret>"}</div>
           <div>{`{"subject":"Order delayed","body":"…","email":"you@co.com"}`}</div>
+        </div>
+      </div>
+
+      <div className="space-y-2 border-t border-border pt-4">
+        <span className="text-sm font-medium">API access</span>
+        <p className="text-xs text-muted">
+          A bearer key for the provisioning API — create/update accounts, customers, and tickets from your systems.
+        </p>
+        <input
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder="api key (a long random string)"
+          className="field font-mono text-xs"
+        />
+        <div className="rounded-lg bg-surface-2 p-2.5 font-mono text-[11px] leading-relaxed text-muted">
+          <div className="break-all">POST {origin}/api/v1/customers</div>
+          <div>Authorization: Bearer {apiKey || "<api-key>"}</div>
+          <div>{`{"email":"sam@acme.com","name":"Sam","account":"Acme"}`}</div>
         </div>
       </div>
 

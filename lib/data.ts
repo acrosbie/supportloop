@@ -1343,6 +1343,73 @@ export async function createCustomFieldDef(
   if (error) throw new Error(`createCustomFieldDef: ${error.message}`);
 }
 
+// Provisioning upserts (public /api/v1 API).
+export async function upsertAccount(
+  orgId: string,
+  input: { name?: string; external_id?: string; plan?: string; mrr?: number; seats?: number; status?: string; health?: string; domain?: string; industry?: string }
+): Promise<string> {
+  const sb = supabaseAdmin();
+  let id: string | null = null;
+  if (input.external_id) {
+    const { data } = await sb.from("accounts").select("id").eq("org_id", orgId).eq("external_id", input.external_id).maybeSingle();
+    id = (data?.id as string) ?? null;
+  }
+  if (!id && input.name) {
+    const { data } = await sb.from("accounts").select("id").eq("org_id", orgId).eq("name", input.name).maybeSingle();
+    id = (data?.id as string) ?? null;
+  }
+  const patch: Record<string, unknown> = {};
+  for (const k of ["name", "external_id", "plan", "mrr", "seats", "status", "health", "domain", "industry"] as const) {
+    const v = (input as Record<string, unknown>)[k];
+    if (v != null) patch[k] = v;
+  }
+  if (id) {
+    if (Object.keys(patch).length) await sb.from("accounts").update(patch).eq("id", id).eq("org_id", orgId);
+    return id;
+  }
+  if (!input.name) throw new Error("name is required to create an account");
+  const newId = randomUUID();
+  const { error } = await sb.from("accounts").insert({ id: newId, org_id: orgId, name: input.name, ...patch });
+  if (error) throw new Error(`upsertAccount: ${error.message}`);
+  return newId;
+}
+
+export async function upsertCustomer(
+  orgId: string,
+  input: {
+    email: string;
+    name?: string;
+    title?: string;
+    phone?: string;
+    location?: string;
+    account_id?: string | null;
+    account_role?: string;
+    custom_fields?: Record<string, unknown>;
+  }
+): Promise<string> {
+  const sb = supabaseAdmin();
+  const { data: existing } = await sb.from("customers").select("id,custom_fields").eq("org_id", orgId).eq("email", input.email).maybeSingle();
+  const patch: Record<string, unknown> = {};
+  for (const k of ["name", "title", "phone", "location", "account_id", "account_role"] as const) {
+    const v = (input as Record<string, unknown>)[k];
+    if (v != null) patch[k] = v;
+  }
+  if (input.custom_fields && typeof input.custom_fields === "object") {
+    const current = (existing?.custom_fields as Record<string, unknown>) ?? {};
+    patch.custom_fields = { ...current, ...input.custom_fields };
+  }
+  if (existing) {
+    if (Object.keys(patch).length) await sb.from("customers").update(patch).eq("id", existing.id as string).eq("org_id", orgId);
+    return existing.id as string;
+  }
+  const newId = randomUUID();
+  const { error } = await sb
+    .from("customers")
+    .insert({ id: newId, org_id: orgId, email: input.email, name: input.name ?? input.email.split("@")[0], ...patch });
+  if (error) throw new Error(`upsertCustomer: ${error.message}`);
+  return newId;
+}
+
 export async function deleteCustomFieldDef(orgId: string, id: string): Promise<void> {
   const { error } = await supabaseAdmin().from("custom_field_defs").delete().eq("id", id).eq("org_id", orgId);
   if (error) throw new Error(`deleteCustomFieldDef: ${error.message}`);

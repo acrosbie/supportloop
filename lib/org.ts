@@ -60,6 +60,7 @@ export interface OrgSettings {
   liveChat?: boolean; // allow escalation to live chat (default true)
   community?: boolean; // show the community section (default true)
   webhookSecret?: string; // bearer secret for the inbound /api/hooks/<slug> webhook
+  apiKey?: string; // bearer key for the /api/v1 provisioning API
 }
 
 export async function getOrgSettings(orgId: string): Promise<OrgSettings> {
