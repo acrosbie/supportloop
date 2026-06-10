@@ -461,6 +461,29 @@ export async function setWorkflowEnabled(orgId: string, id: string, enabled: boo
   if (error) throw new Error(`setWorkflowEnabled: ${error.message}`);
 }
 
+export async function createWorkflow(
+  orgId: string,
+  input: { name: string; trigger: string; condition: Condition; steps: WorkflowStep[] }
+): Promise<void> {
+  const sb = supabaseAdmin();
+  const { count } = await sb.from("workflows").select("id", { count: "exact", head: true }).eq("org_id", orgId);
+  const { error } = await sb.from("workflows").insert({
+    org_id: orgId,
+    name: input.name,
+    trigger: input.trigger,
+    enabled: true,
+    steps: input.steps,
+    condition: input.condition ?? {},
+    position: count ?? 0,
+  });
+  if (error) throw new Error(`createWorkflow: ${error.message}`);
+}
+
+export async function deleteWorkflow(orgId: string, id: string): Promise<void> {
+  const { error } = await supabaseAdmin().from("workflows").delete().eq("id", id).eq("org_id", orgId);
+  if (error) throw new Error(`deleteWorkflow: ${error.message}`);
+}
+
 export interface RecentRun {
   id: string;
   workflow_name: string;

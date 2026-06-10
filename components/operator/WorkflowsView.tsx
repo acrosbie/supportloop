@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Workflow as WorkflowIcon } from "lucide-react";
+import { Workflow as WorkflowIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import WorkflowBuilder from "@/components/operator/WorkflowBuilder";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ export default function WorkflowsView({ workflows, runs }: { workflows: Wf[]; ru
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [sweeping, setSweeping] = useState(false);
+  const [showBuilder, setShowBuilder] = useState(false);
 
   async function sweep() {
     setSweeping(true);
@@ -84,6 +86,26 @@ export default function WorkflowsView({ workflows, runs }: { workflows: Wf[]; ru
     }
   }
 
+  async function remove(id: string) {
+    if (!confirm("Delete this workflow?")) return;
+    setBusy(id);
+    try {
+      const r = await fetch("/api/workflows", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+      toast.success("Workflow deleted");
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -91,10 +113,21 @@ export default function WorkflowsView({ workflows, runs }: { workflows: Wf[]; ru
           <h1 className="text-2xl font-semibold tracking-tight">Workflows</h1>
           <p className="mt-1 text-muted">Automations that run on a trigger — LLM + deterministic steps acting on the ticket, customer, and account.</p>
         </div>
-        <Button size="sm" variant="outline" onClick={sweep} disabled={sweeping}>
-          {sweeping ? "Sweeping…" : "Run SLA sweep"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={sweep} disabled={sweeping}>
+            {sweeping ? "Sweeping…" : "Run SLA sweep"}
+          </Button>
+          <Button size="sm" onClick={() => setShowBuilder((s) => !s)}>
+            {showBuilder ? "Close" : "New workflow"}
+          </Button>
+        </div>
       </div>
+
+      {showBuilder && (
+        <div className="mt-4">
+          <WorkflowBuilder onDone={() => setShowBuilder(false)} />
+        </div>
+      )}
 
       {workflows.length === 0 ? (
         <EmptyState
@@ -128,22 +161,32 @@ export default function WorkflowsView({ workflows, runs }: { workflows: Wf[]; ru
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => toggle(w.id, !w.enabled)}
-                  disabled={busy === w.id}
-                  aria-label={w.enabled ? "Disable workflow" : "Enable workflow"}
-                  className={cn(
-                    "relative h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-50",
-                    w.enabled ? "bg-accent" : "bg-border-strong"
-                  )}
-                >
-                  <span
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    onClick={() => toggle(w.id, !w.enabled)}
+                    disabled={busy === w.id}
+                    aria-label={w.enabled ? "Disable workflow" : "Enable workflow"}
                     className={cn(
-                      "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all",
-                      w.enabled ? "left-[18px]" : "left-0.5"
+                      "relative h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-50",
+                      w.enabled ? "bg-accent" : "bg-border-strong"
                     )}
-                  />
-                </button>
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all",
+                        w.enabled ? "left-[18px]" : "left-0.5"
+                      )}
+                    />
+                  </button>
+                  <button
+                    onClick={() => remove(w.id)}
+                    disabled={busy === w.id}
+                    aria-label="Delete workflow"
+                    className="text-muted transition-colors hover:text-danger disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 {w.steps.map((s, i) => (
