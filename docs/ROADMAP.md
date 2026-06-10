@@ -11,6 +11,7 @@ Last updated: 2026-06-07
 - **Multi-tenant foundation** — orgs, org-scoped data layer, role-based access, RLS hardening (0006).
 - **RBAC** (0011) — agent **groups** + group roles (member / group-admin), customer **account roles** (admin / member), and a pure permission model (`lib/rbac.ts`) enforced across KB (create/edit/publish/delete), ops automation, custom fields, settings & team — plus an admin team/group management UI and a `can()` test suite.
 - **SLA engine** — first-response, ongoing next-response & resolution clocks (priority-based targets); per-ticket Service-levels panel, inbox SLA badge, dashboard compliance KPIs, and an **`sla.breach` workflow trigger** (a swept job — manual button + Vercel cron — that fires automation once per breached ticket) (`lib/sla.ts`, tested).
+- **Integrations** — an inbound **webhook** (`POST /api/hooks/<slug>`, per-org secret → creates a ticket + fires `webhook.received`) and a **provisioning API** (`POST /api/v1/accounts|customers|tickets`, per-org API key) to create/update accounts, customers, and tickets from external systems; both configured in Admin → Workspace.
 - **Customer self-service** — branded hosted help center, community, embeddable widget, grounded RAG chat that **escalates instead of hallucinating** (similarity guardrail, per-org threshold).
 - **Operator console** — inbox/queues, ticket detail, triage, grounded draft replies, canned macros, knowledge loop (resolved ticket → drafted article).
 - **AI depth** — AI insights (emerging themes + weekly narrative), **agent copilot** (summary, next action, similar tickets), **agentic tool-use** (investigate → propose refund → human-approved), **AI observability** (per-call cost/latency/grounding traces), **evals + faithfulness** (LLM-as-judge hallucination check).
@@ -50,7 +51,7 @@ Events (**triggers**) fire **action sequences** that can read and modify the **t
   - **Low CSAT** — escalate + create follow-up + decrement account health.
   - **Account risk** — usage/sentiment signals → CSM task + at-risk flag.
 - **Architecture sketch:** `workflows` (trigger + steps as JSON, org-scoped) + `workflow_runs` (execution log) tables; a server **executor** running steps sequentially — deterministic steps via the data layer, LLM steps via `lib/anthropic`, reusing `lib/agent-tools.ts` as action nodes; every LLM step traced via the existing `ai_trace`. Visual builder comes later.
-- **Status:** ✅ **shipped** — intake automation, rule **conditions**, **four triggers** (`ticket.created`, `csat.submitted`, `status.changed`, `sla.breach`), ticket/account/**customer**-mutating actions, a **visual builder** (create / delete in the UI), and **async execution** (runs after the response via `@vercel/functions` `waitUntil`, so customer submits stay snappy). **Next:** an **inbound-webhook trigger** (also the substrate for external integrations).
+- **Status:** ✅ **feature-complete** — intake automation, rule **conditions**, **five triggers** (`ticket.created`, `csat.submitted`, `status.changed`, `sla.breach`, `webhook.received`), ticket/account/**customer**-mutating actions, a **visual builder** (create / delete in the UI), and **async execution** (runs after the response via `@vercel/functions` `waitUntil`). Future polish only: a graphical condition builder + step reordering.
 
 ### 2. External authentication + user/account provisioning  ⭐ headline bet
 
@@ -64,7 +65,7 @@ Let a customer's **end users authenticate** into SupportLoop (hosted help center
   - `identify` — upsert the user from JWT attributes on first auth
 - **Auto-provisioning:** on an authenticated external user's first appearance, upsert customer + account from the identify payload — which can itself **trigger a workflow** (e.g. welcome / onboarding).
 - **Security:** per-org API keys (hashed, scoped), JWT signing secret in `organizations.settings`, rate limiting.
-- **Phasing:** P1 per-org API key + provisioning REST → P2 JWT identity for widget/help center → P3 auto-provision + `identify` → P4 outbound webhooks + SCIM-style sync.
+- **Status:** ✅ **P1 shipped** — per-org API key + provisioning REST (`/api/v1/*`) and the inbound webhook. **Next:** P2 JWT identity for the widget/help center, P3 auto-provision on `identify`, P4 outbound webhooks + SCIM-style sync.
 
 ### 3. Customer-controlled site rollout & custom domains
 
