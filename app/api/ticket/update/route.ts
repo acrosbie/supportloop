@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import { getAuth } from "@/lib/auth";
-import { updateTicketFields, type TicketFields } from "@/lib/data";
+import { updateTicketFields, getTicket, type TicketFields } from "@/lib/data";
+import { runStatusChanged } from "@/lib/workflows";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 // Edit ticket properties (priority/status/assignee/queue/tags). Agent/admin only.
 export async function POST(req: NextRequest) {
@@ -21,7 +23,12 @@ export async function POST(req: NextRequest) {
   if (!ticketId || !fields) return Response.json({ error: "ticketId and fields required" }, { status: 400 });
   if (!auth.orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
   try {
+    const before = fields.status ? await getTicket(auth.orgId, ticketId) : null;
     await updateTicketFields(auth.orgId, ticketId, fields);
+    if (fields.status && before && before.status !== fields.status) {
+      // Fire status.changed workflows (e.g. reopened → escalate).
+      await runStatusChanged(auth.orgId, ticketId).catch(() => {});
+    }
     return Response.json({ ok: true });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : "Update failed" }, { status: 500 });

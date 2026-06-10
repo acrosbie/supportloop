@@ -22,7 +22,7 @@ import { isStandardKey } from "./fields";
 import { firstResponseSla, resolutionSla } from "./sla";
 import type { Ticket } from "./types";
 
-export type WorkflowTrigger = "ticket.created" | "csat.submitted" | "sla.breach";
+export type WorkflowTrigger = "ticket.created" | "csat.submitted" | "sla.breach" | "status.changed";
 export type WorkflowStepType =
   | "triage"
   | "priority_by_account"
@@ -202,6 +202,7 @@ export async function runWorkflows(orgId: string, trigger: WorkflowTrigger, tick
 
 export const runTicketCreated = (orgId: string, ticketId: string) => runWorkflows(orgId, "ticket.created", ticketId);
 export const runCsatSubmitted = (orgId: string, ticketId: string) => runWorkflows(orgId, "csat.submitted", ticketId);
+export const runStatusChanged = (orgId: string, ticketId: string) => runWorkflows(orgId, "status.changed", ticketId);
 
 /** Scan open tickets for first-response/resolution breaches and fire the
  *  sla.breach workflows once per ticket (deduped via tickets.sla_breached_at).

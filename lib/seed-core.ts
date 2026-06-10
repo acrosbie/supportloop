@@ -593,6 +593,10 @@ const SLA_STEPS = [
   { type: "escalate" },
   { type: "add_internal_note", message: "SLA breached — prioritize this ticket and update the customer." },
 ];
+const REOPEN_STEPS = [
+  { type: "escalate" },
+  { type: "add_internal_note", message: "Ticket reopened — please follow up with the customer." },
+];
 
 /** Seed the default workflows. Best-effort: needs 0009; the conditional
  *  csat.submitted workflow needs 0010 (the condition column). */
@@ -636,6 +640,16 @@ async function seedWorkflows(sb: SupabaseClient, orgId: string): Promise<void> {
       steps: HAPPY_STEPS,
       position: 2,
       condition: { all: [{ field: "ticket.csat", op: "gte", value: 4 }] },
+    });
+    rows.push({
+      id: randomUUID(),
+      org_id: orgId,
+      name: "Reopened ticket escalation",
+      trigger: "status.changed",
+      enabled: true,
+      steps: REOPEN_STEPS,
+      position: 4,
+      condition: { all: [{ field: "ticket.status", op: "eq", value: "open" }] },
     });
   }
   rows.push({
