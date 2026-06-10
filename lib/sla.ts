@@ -20,8 +20,23 @@ export const SLA_LABEL: Record<SlaType, string> = {
   resolution: "Resolution",
 };
 
-function targetHours(type: SlaType, priority: string): number {
-  return TARGETS[type][priority] ?? TARGETS[type].normal;
+// Higher plans get tighter SLAs; no plan / Free → the base targets.
+export function planFactor(plan?: string): number {
+  switch ((plan ?? "").toLowerCase()) {
+    case "enterprise":
+      return 0.5;
+    case "business":
+      return 0.7;
+    case "pro":
+      return 0.85;
+    default:
+      return 1;
+  }
+}
+
+function targetHours(type: SlaType, priority: string, plan?: string): number {
+  const base = TARGETS[type][priority] ?? TARGETS[type].normal;
+  return Math.max(1, Math.round(base * planFactor(plan)));
 }
 
 export interface SlaStatus {
@@ -40,8 +55,8 @@ function pendingState(dueAt: number, now: number): { state: SlaState; ms: number
   return { state: remaining < HOUR ? "warning" : "ok", ms: remaining };
 }
 
-export function firstResponseSla(t: Ticket, now = Date.now()): SlaStatus {
-  const target = targetHours("first_response", t.priority);
+export function firstResponseSla(t: Ticket, now = Date.now(), plan?: string): SlaStatus {
+  const target = targetHours("first_response", t.priority, plan);
   const dueAt = new Date(t.created_at).getTime() + target * HOUR;
   const respondedAt = t.first_response_at
     ? new Date(t.first_response_at).getTime()
@@ -54,8 +69,8 @@ export function firstResponseSla(t: Ticket, now = Date.now()): SlaStatus {
   return { type: "first_response", ...pendingState(dueAt, now), dueAt, targetHours: target };
 }
 
-export function resolutionSla(t: Ticket, now = Date.now()): SlaStatus {
-  const target = targetHours("resolution", t.priority);
+export function resolutionSla(t: Ticket, now = Date.now(), plan?: string): SlaStatus {
+  const target = targetHours("resolution", t.priority, plan);
   const dueAt = new Date(t.created_at).getTime() + target * HOUR;
   if (t.resolved_at) {
     const r = new Date(t.resolved_at).getTime();
@@ -66,8 +81,8 @@ export function resolutionSla(t: Ticket, now = Date.now()): SlaStatus {
 
 /** Ongoing-response SLA — only ticks while the customer awaits a reply.
  *  `awaitingSince` is when the unanswered customer message arrived, or null. */
-export function nextResponseSla(t: Ticket, awaitingSince: number | null, now = Date.now()): SlaStatus {
-  const target = targetHours("next_response", t.priority);
+export function nextResponseSla(t: Ticket, awaitingSince: number | null, now = Date.now(), plan?: string): SlaStatus {
+  const target = targetHours("next_response", t.priority, plan);
   if (isResolved(t.status) || awaitingSince == null) {
     return { type: "next_response", state: "na", dueAt: null, ms: 0, targetHours: target };
   }
@@ -84,9 +99,9 @@ export function awaitingAgentSince(messages: { role: string; internal: boolean; 
 }
 
 /** The single most pressing SLA for compact (inbox) display. */
-export function activeSla(t: Ticket, now = Date.now()): SlaStatus {
-  if (isResolved(t.status)) return resolutionSla(t, now);
-  return t.first_response_at ? resolutionSla(t, now) : firstResponseSla(t, now);
+export function activeSla(t: Ticket, now = Date.now(), plan?: string): SlaStatus {
+  if (isResolved(t.status)) return resolutionSla(t, now, plan);
+  return t.first_response_at ? resolutionSla(t, now, plan) : firstResponseSla(t, now, plan);
 }
 
 export function formatDuration(ms: number): string {

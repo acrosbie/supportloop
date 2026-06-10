@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Inbox } from "lucide-react";
 import { getAuth, NO_ORG } from "@/lib/auth";
-import { getQueue, getQueueCounts, getAgents } from "@/lib/data";
+import { getQueue, getQueueCounts, getAgents, getCustomerPlans } from "@/lib/data";
 import type { Ticket } from "@/lib/types";
 import QueueControls from "@/components/agent/QueueControls";
 import { Badge, PriorityPill, StatusPill } from "@/components/ui/badge";
@@ -13,9 +13,9 @@ import { activeSla, formatDuration } from "@/lib/sla";
 
 export const dynamic = "force-dynamic";
 
-function SlaCell({ t }: { t: Ticket }) {
+function SlaCell({ t, plan }: { t: Ticket; plan?: string }) {
   if (t.status === "resolved" || t.status === "deflected") return <span className="text-xs text-muted">—</span>;
-  const sla = activeSla(t);
+  const sla = activeSla(t, Date.now(), plan);
   if (sla.state === "breached") return <Badge tone="danger">Overdue {formatDuration(sla.ms)}</Badge>;
   if (sla.state === "warning") return <Badge tone="warning">Due {formatDuration(sla.ms)}</Badge>;
   return <span className="text-xs text-muted">On track · {formatDuration(sla.ms)}</span>;
@@ -32,10 +32,11 @@ export default async function AgentInbox({
   const view = searchParams.view || "my-open";
   const q = searchParams.q || "";
 
-  const [tickets, counts, agents] = await Promise.all([
+  const [tickets, counts, agents, plans] = await Promise.all([
     getQueue(orgId, { view, q, priority: searchParams.priority }, meId),
     getQueueCounts(orgId, meId),
     getAgents(orgId),
+    getCustomerPlans(orgId),
   ]);
   const agentName = new Map(agents.map((a) => [a.id, a.display_name || "Agent"]));
 
@@ -106,7 +107,7 @@ export default async function AgentInbox({
                     )}
                   </td>
                   <td className="hidden px-3 py-3 lg:table-cell">
-                    <SlaCell t={t} />
+                    <SlaCell t={t} plan={t.customer_id ? plans.get(t.customer_id) : undefined} />
                   </td>
                   <td className="px-3 py-3">
                     <StatusPill status={t.status} />

@@ -131,7 +131,7 @@ export default async function TicketDetail({ params }: { params: { id: string } 
             slaDueAt={ticket.sla_due_at}
             resolved={resolved}
           />
-          <SlaPanel ticket={ticket} awaitingSince={awaitingSince} />
+          <SlaPanel ticket={ticket} awaitingSince={awaitingSince} plan={customer?.account?.plan} />
 
           <Copilot
             ticketId={ticket.id}

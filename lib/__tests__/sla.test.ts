@@ -74,4 +74,11 @@ describe("sla engine", () => {
     ];
     expect(awaitingAgentSince(answered)).toBeNull();
   });
+
+  it("plan factor tightens SLAs for higher plans", () => {
+    // normal first-response base = 8h; 5h elapsed, unanswered.
+    const t = tk({ priority: "normal", created_at: new Date(Date.now() - 5 * HOUR).toISOString() });
+    expect(firstResponseSla(t, Date.now()).state).not.toBe("breached"); // 8h base → on track
+    expect(firstResponseSla(t, Date.now(), "Enterprise").state).toBe("breached"); // ×0.5 → 4h → breached
+  });
 });

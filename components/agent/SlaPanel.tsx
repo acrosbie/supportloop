@@ -35,8 +35,21 @@ function SlaRow({ s }: { s: SlaStatus }) {
   );
 }
 
-export default function SlaPanel({ ticket, awaitingSince }: { ticket: Ticket; awaitingSince: number | null }) {
-  const slas = [firstResponseSla(ticket), nextResponseSla(ticket, awaitingSince), resolutionSla(ticket)];
+export default function SlaPanel({
+  ticket,
+  awaitingSince,
+  plan,
+}: {
+  ticket: Ticket;
+  awaitingSince: number | null;
+  plan?: string;
+}) {
+  const now = Date.now();
+  const slas = [
+    firstResponseSla(ticket, now, plan),
+    nextResponseSla(ticket, awaitingSince, now, plan),
+    resolutionSla(ticket, now, plan),
+  ];
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-muted">Service levels</div>

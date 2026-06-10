@@ -632,6 +632,27 @@ export async function assignUserGroup(
 // ---------------------------------------------------------------------------
 // SLA compliance summary (for the ops dashboard)
 // ---------------------------------------------------------------------------
+/** customer_id → account plan, for plan-based SLA targets across a ticket list. */
+export async function getCustomerPlans(orgId: string): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    const sb = supabaseAdmin();
+    const [{ data: custs }, { data: accts }] = await Promise.all([
+      sb.from("customers").select("id,account_id").eq("org_id", orgId),
+      sb.from("accounts").select("id,plan").eq("org_id", orgId),
+    ]);
+    const planByAcct = new Map((accts ?? []).map((a) => [a.id as string, a.plan as string]));
+    for (const c of custs ?? []) {
+      const acct = c.account_id as string | null;
+      const plan = acct ? planByAcct.get(acct) : undefined;
+      if (plan) map.set(c.id as string, plan);
+    }
+  } catch {
+    /* tolerant — empty map before 0007 */
+  }
+  return map;
+}
+
 export interface SlaSummary {
   firstResponseRate: number | null;
   resolutionRate: number | null;
@@ -640,11 +661,15 @@ export interface SlaSummary {
 
 export async function getSlaSummary(orgId: string): Promise<SlaSummary> {
   try {
-    const { data } = await supabaseAdmin()
-      .from("tickets")
-      .select("status,priority,created_at,first_response_at,resolved_at")
-      .eq("org_id", orgId);
-    const rows = (data ?? []) as Pick<Ticket, "status" | "priority" | "created_at" | "first_response_at" | "resolved_at">[];
+    const sb = supabaseAdmin();
+    const [{ data }, plans] = await Promise.all([
+      sb.from("tickets").select("status,priority,created_at,first_response_at,resolved_at,customer_id").eq("org_id", orgId),
+      getCustomerPlans(orgId),
+    ]);
+    const rows = (data ?? []) as Pick<
+      Ticket,
+      "status" | "priority" | "created_at" | "first_response_at" | "resolved_at" | "customer_id"
+    >[];
     const now = Date.now();
     let frEval = 0;
     let frMet = 0;
@@ -653,7 +678,8 @@ export async function getSlaSummary(orgId: string): Promise<SlaSummary> {
     let breached = 0;
     for (const r of rows) {
       const t = r as unknown as Ticket;
-      const fr = firstResponseSla(t, now);
+      const plan = r.customer_id ? plans.get(r.customer_id) : undefined;
+      const fr = firstResponseSla(t, now, plan);
       if (fr.state === "met") {
         frEval++;
         frMet++;
@@ -662,9 +688,9 @@ export async function getSlaSummary(orgId: string): Promise<SlaSummary> {
       }
       if (t.resolved_at) {
         resEval++;
-        if (resolutionSla(t, now).state === "met") resMet++;
+        if (resolutionSla(t, now, plan).state === "met") resMet++;
       }
-      if (t.status !== "resolved" && t.status !== "deflected" && activeSla(t, now).state === "breached") breached++;
+      if (t.status !== "resolved" && t.status !== "deflected" && activeSla(t, now, plan).state === "breached") breached++;
     }
     return {
       firstResponseRate: frEval ? frMet / frEval : null,
