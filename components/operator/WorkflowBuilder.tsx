@@ -11,6 +11,7 @@ const TRIGGERS = [
   { v: "csat.submitted", label: "CSAT submitted" },
   { v: "status.changed", label: "Status changed" },
   { v: "sla.breach", label: "SLA breached" },
+  { v: "webhook.received", label: "Webhook received" },
 ];
 const STEP_TYPES = [
   { type: "triage", label: "AI triage" },

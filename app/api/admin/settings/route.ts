@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
   if (typeof settings?.assistant === "boolean") patch.assistant = settings.assistant;
   if (typeof settings?.liveChat === "boolean") patch.liveChat = settings.liveChat;
   if (typeof settings?.community === "boolean") patch.community = settings.community;
+  if (typeof settings?.webhookSecret === "string") patch.webhookSecret = settings.webhookSecret.trim().slice(0, 100);
 
   try {
     await updateOrgSettings(orgId, patch);

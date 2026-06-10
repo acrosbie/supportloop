@@ -12,6 +12,7 @@ interface Settings {
   assistant?: boolean;
   liveChat?: boolean;
   community?: boolean;
+  webhookSecret?: string;
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
@@ -38,7 +39,9 @@ export default function AdminSettings({ initial, slug }: { initial: Settings; sl
   const [assistant, setAssistant] = useState(initial.assistant !== false);
   const [liveChat, setLiveChat] = useState(initial.liveChat !== false);
   const [community, setCommunity] = useState(initial.community !== false);
+  const [webhookSecret, setWebhookSecret] = useState(initial.webhookSecret || "");
   const [busy, setBusy] = useState(false);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   async function save() {
     setBusy(true);
@@ -46,7 +49,7 @@ export default function AdminSettings({ initial, slug }: { initial: Settings; sl
       const r = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ settings: { accent, tagline, threshold, domain, assistant, liveChat, community } }),
+        body: JSON.stringify({ settings: { accent, tagline, threshold, domain, assistant, liveChat, community, webhookSecret } }),
       });
       const j = await r.json();
       if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
@@ -123,6 +126,25 @@ export default function AdminSettings({ initial, slug }: { initial: Settings; sl
           center stays at <code className="rounded bg-surface-2 px-1">/help/{slug}</code>.
         </span>
       </label>
+
+      <div className="space-y-2 border-t border-border pt-4">
+        <span className="text-sm font-medium">Inbound webhook</span>
+        <p className="text-xs text-muted">
+          Let an external system open tickets here. Set a secret, then POST to your endpoint — the `webhook.received`
+          workflow triages + routes it automatically.
+        </p>
+        <input
+          value={webhookSecret}
+          onChange={(e) => setWebhookSecret(e.target.value)}
+          placeholder="bearer secret (a long random string)"
+          className="field font-mono text-xs"
+        />
+        <div className="rounded-lg bg-surface-2 p-2.5 font-mono text-[11px] leading-relaxed text-muted">
+          <div className="break-all">POST {origin}/api/hooks/{slug}</div>
+          <div>Authorization: Bearer {webhookSecret || "<secret>"}</div>
+          <div>{`{"subject":"Order delayed","body":"…","email":"you@co.com"}`}</div>
+        </div>
+      </div>
 
       <Button size="sm" onClick={save} disabled={busy}>
         {busy ? "Saving…" : "Save settings"}

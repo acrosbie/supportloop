@@ -597,6 +597,11 @@ const REOPEN_STEPS = [
   { type: "escalate" },
   { type: "add_internal_note", message: "Ticket reopened — please follow up with the customer." },
 ];
+const WEBHOOK_STEPS = [
+  { type: "triage" },
+  { type: "priority_by_account" },
+  { type: "add_internal_note", message: "Created via webhook integration." },
+];
 
 /** Seed the default workflows. Best-effort: needs 0009; the conditional
  *  csat.submitted workflow needs 0010 (the condition column). */
@@ -660,6 +665,16 @@ async function seedWorkflows(sb: SupabaseClient, orgId: string): Promise<void> {
     enabled: true,
     steps: SLA_STEPS,
     position: 3,
+    ...(hasCondition ? { condition: {} } : {}),
+  });
+  rows.push({
+    id: randomUUID(),
+    org_id: orgId,
+    name: "Webhook intake",
+    trigger: "webhook.received",
+    enabled: true,
+    steps: WEBHOOK_STEPS,
+    position: 5,
     ...(hasCondition ? { condition: {} } : {}),
   });
   await insertAll(sb, "workflows", rows);

@@ -5,7 +5,7 @@ import { setWorkflowEnabled, createWorkflow, deleteWorkflow, type WorkflowStep, 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const TRIGGERS = ["ticket.created", "csat.submitted", "status.changed", "sla.breach"];
+const TRIGGERS = ["ticket.created", "csat.submitted", "status.changed", "sla.breach", "webhook.received"];
 const STEP_TYPES = [
   "triage",
   "priority_by_account",

@@ -59,6 +59,7 @@ export interface OrgSettings {
   assistant?: boolean; // show the AI chat assistant (default true)
   liveChat?: boolean; // allow escalation to live chat (default true)
   community?: boolean; // show the community section (default true)
+  webhookSecret?: string; // bearer secret for the inbound /api/hooks/<slug> webhook
 }
 
 export async function getOrgSettings(orgId: string): Promise<OrgSettings> {
