@@ -4,11 +4,36 @@
 
 **SupportLoop is a working, multi-tenant AI customer-support platform** — not a chatbot demo, but the whole support lifecycle as one closed loop: AI self-service → escalation → agent assist → knowledge generation → ops analytics → community, with every arrow feeding the next.
 
-**▶ Live demo:** _add your deployment URL_ · one-click demo logins, no signup required.
+**▶ See it:** a 2-minute [guided walkthrough](#see-it-live-guided-path-2-minutes) below, or run it locally in ~2 minutes. One-click demo logins, no signup required.
 
 > A portfolio piece by **Aidan Crosbie**. The thesis: I've *run* customer self-service at scale (Zoom, 10M→300M users, 90%+ deflection) **and** can *build* the LLM systems behind it. Most engineers build the bot; few also build the operator's analytics that prove it moved a business metric. This builds both — and treats "grounded, or escalate" as a hard rule, not a nice-to-have.
 >
 > The demo is configured for a fictional customer, **Orbit** (a video-collaboration app). The data is invented; the system is real — you can sign up and get your own isolated workspace.
+
+---
+
+## What this is
+
+A prototype, built solo on the side in about a week (six days of commits). It is not production-hardened code, and it is not trying to be. The goal is to show two things at once: that I understand customer-support workflows from a decade of running them at Zoom, and that I can now build the AI behind them. Where a corner is cut, the "How I'd take it to production" section below says what a real deployment would need.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/home.png" alt="Marketing home" /><br/><sub>Marketing home</sub></td>
+    <td width="50%"><img src="docs/screenshots/help-center.png" alt="Customer help center" /><br/><sub>Customer help center, grounded self-service</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/agent-inbox.png" alt="Agent inbox" /><br/><sub>Agent inbox: triage, SLAs, assignment</sub></td>
+    <td><img src="docs/screenshots/ops-dashboard.png" alt="Ops dashboard" /><br/><sub>Ops dashboard: deflection, automation, CSAT</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/ai-activity.png" alt="AI activity" /><br/><sub>AI activity: per-call cost, latency, grounding</sub></td>
+    <td><img src="docs/screenshots/quality-evals.png" alt="Quality and evals" /><br/><sub>Quality and evals: grounded-rate and faithfulness</sub></td>
+  </tr>
+</table>
+
+<sub>Captured from the live demo with <code>scripts/screenshots.ts</code> (Playwright), so they stay current.</sub>
 
 ---
 
@@ -100,6 +125,7 @@ Every published article immediately improves retrieval, so the next identical qu
 - **Streaming with metadata side-channel.** Answers stream token-by-token via a `ReadableStream`; the grounding decision (confidence + cited sources) rides along in an `x-grounding` response header so the UI can render citations and a confidence state without buffering.
 - **Human in the loop by design.** AI drafts; humans approve. KB articles never auto-publish; agent replies are always editable before send.
 - **Keys never reach the browser.** All AI/DB calls run in server route handlers; the client only ever talks to first-party routes.
+- **Public-demo cost guard.** The LLM routes are rate-limited per IP with a global daily ceiling (`lib/ratelimit.ts`, enforced in `middleware.ts`), so the hosted demo can't be scripted into a surprise bill. Disabled automatically when unconfigured, so local dev is unaffected.
 
 ---
 
@@ -135,13 +161,8 @@ npm run dev
 | `SUPABASE_SERVICE_ROLE_KEY` | server-side data access (never exposed) |
 | `NEXT_PUBLIC_SITE_URL` | optional — base URL for OG tags + the widget snippet |
 
-Demo logins are one-click on `/login`. The original staged build spec (Features → Spec → Build) lives in **[BUILD_PLAN.md](./BUILD_PLAN.md)**.
+Demo logins are one-click on `/login`.
 
-<!-- Screenshots: drop images in docs/ and uncomment.
-![Help center](docs/help-center.png)
-![Agent console](docs/agent.png)
-![Ops dashboard](docs/ops.png)
--->
 
 ---
 

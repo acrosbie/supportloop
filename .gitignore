@@ -5,6 +5,7 @@ node_modules/
 .next/
 out/
 build/
+*.tsbuildinfo
 
 # env / secrets
 .env
@@ -27,6 +28,9 @@ Thumbs.db
 .jolli/
 .vscode/
 .idea/
+
+# personal job-search docs — never publish (resume, LinkedIn, strategy)
+career/
 
 # extra safety for a public repo — never commit secrets or key material
 *.pem

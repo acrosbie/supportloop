@@ -1,6 +1,6 @@
 # SupportLoop — Living Roadmap
 
-> This is the canonical, evolving roadmap. It's a **living document** — when something ships it moves to **Shipped**; new ideas land in **Planned**. Maintained across sessions (Claude keeps it current).
+> This is the canonical, evolving roadmap. Shipped items move to **Shipped**; new ideas land in **Planned**. It is kept current as the project progresses.
 
 Last updated: 2026-06-07
 
