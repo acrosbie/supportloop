@@ -184,6 +184,98 @@ body {
 .prose-chat strong { font-weight: 600; }
 .prose-chat hr { border-color: rgb(var(--border)); margin: 0.75rem 0; }
 
+/* Long-form article prose. Separate from .prose-chat, which is sized for chat
+   bubbles: this is set for sustained reading (larger type, a real heading
+   scale, room between blocks) while staying on the same design tokens. */
+.prose-article {
+  font-size: 1.0625rem;
+  line-height: 1.72;
+  color: rgb(var(--foreground) / 0.88);
+}
+.prose-article > :first-child { margin-top: 0; }
+.prose-article p {
+  margin: 1.25rem 0 0;
+  text-wrap: pretty;
+}
+.prose-article h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.011em;
+  text-wrap: balance;
+  color: rgb(var(--foreground));
+  margin: 3rem 0 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgb(var(--border));
+}
+.prose-article h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.006em;
+  text-wrap: balance;
+  color: rgb(var(--foreground));
+  margin: 2.25rem 0 0;
+}
+.prose-article ul,
+.prose-article ol {
+  margin: 1.25rem 0 0;
+  padding-left: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.prose-article ul { list-style: disc; }
+.prose-article ol { list-style: decimal; }
+.prose-article li { padding-left: 0.25rem; }
+.prose-article li::marker { color: rgb(var(--muted)); }
+.prose-article strong { font-weight: 650; color: rgb(var(--foreground)); }
+.prose-article em { font-style: italic; }
+.prose-article a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgb(var(--border-strong));
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms ease;
+}
+.prose-article a:hover { text-decoration-color: rgb(var(--accent)); }
+.prose-article code {
+  background: rgb(var(--surface-2));
+  border: 1px solid rgb(var(--border));
+  border-radius: 4px;
+  padding: 0.08rem 0.32rem;
+  font-size: 0.86em;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+.prose-article pre {
+  background: rgb(var(--surface-2));
+  border: 1px solid rgb(var(--border));
+  border-radius: 10px;
+  padding: 1.1rem 1.2rem;
+  overflow-x: auto;
+  margin: 1.75rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+.prose-article pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 1em;
+}
+.prose-article blockquote {
+  margin: 1.75rem 0 0;
+  padding-left: 1.1rem;
+  border-left: 2px solid rgb(var(--accent));
+  color: rgb(var(--muted));
+}
+.prose-article hr {
+  border: 0;
+  border-top: 1px solid rgb(var(--border));
+  margin: 2.5rem 0 0;
+}
+
 /* Radix-driven micro-animations */
 @keyframes fade-in {
   from { opacity: 0; }

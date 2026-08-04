@@ -130,6 +130,9 @@ export default function AboutPage() {
               Read the source
             </a>
           </Button>
+          <Button asChild variant="ghost" size="lg">
+            <Link href="/writing">Writing</Link>
+          </Button>
         </section>
         <p className="mt-8 text-sm text-muted">Built by Aidan Crosbie.</p>
       </div>

@@ -57,6 +57,7 @@ export default function Home() {
           <nav className="hidden items-center gap-6 text-sm text-muted md:flex">
             <a href="#how" className="hover:text-foreground">How it works</a>
             <a href="#features" className="hover:text-foreground">Features</a>
+            <Link href="/writing" className="hover:text-foreground">Writing</Link>
             <Link href="/about" className="hover:text-foreground">About</Link>
           </nav>
           <div className="flex items-center gap-2">
@@ -274,6 +275,7 @@ export default function Home() {
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
             <a href="#features" className="hover:text-foreground">Features</a>
+            <Link href="/writing" className="hover:text-foreground">Writing</Link>
             <Link href="/about" className="hover:text-foreground">About this project</Link>
             <a
               href="https://github.com/acrosbie/supportloop"

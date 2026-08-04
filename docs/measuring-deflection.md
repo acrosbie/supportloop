@@ -75,7 +75,7 @@ This is rarely anyone acting in bad faith. It is a team optimizing the thing the
 [SupportLoop](https://support.aidancrosbie.com) computes the conversation-denominated version:
 
 - Every conversation logs exactly one outcome event, `deflection` or `escalation`. Not "most" conversations. Every one, including tickets that are still open, because an open ticket is an escalated conversation and dropping it from the denominator inflates the rate.
-- The rate is `deflected / (deflected + escalated)`, in [`lib/deflection.ts`](../lib/deflection.ts), as a pure function with tests. One of those tests asserts the result stays bounded in [0, 1], because the failure mode this whole document is about shows up as a number above 100%.
+- The rate is `deflected / (deflected + escalated)`, in [`lib/deflection.ts`](https://github.com/acrosbie/supportloop/blob/main/lib/deflection.ts), as a pure function with tests. One of those tests asserts the result stays bounded in [0, 1], because the failure mode this whole document is about shows up as a number above 100%.
 - The denominator is printed on the dashboard next to the number, not hidden in a tooltip.
 - Ticket metrics exclude deflected conversations, so "Tickets" means escalations and the volume chart means ticket volume.
 - When nothing was measured, the rate renders as `—` rather than `0%`. An unmeasured period displayed as zero is its own small lie.
