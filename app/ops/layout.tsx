@@ -1,5 +1,5 @@
 import OperatorShell, { type OperatorNavItem } from "@/components/operator/OperatorShell";
-import { requireRole } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 
 const BASE_NAV: OperatorNavItem[] = [
   { href: "/ops", label: "Dashboard", hint: "Deflection, CSAT, volume", icon: "dashboard", exact: true },
@@ -9,7 +9,8 @@ const BASE_NAV: OperatorNavItem[] = [
 ];
 
 export default async function OpsLayout({ children }: { children: React.ReactNode }) {
-  const me = await requireRole(["agent", "admin"]);
+  // Same gate the middleware applies to /ops, repeated here as defense in depth.
+  const me = await requirePermission("ops.view");
   const nav =
     me.role === "admin"
       ? [...BASE_NAV, { href: "/ops/admin", label: "Admin", hint: "Team + KB", icon: "admin" } as OperatorNavItem]

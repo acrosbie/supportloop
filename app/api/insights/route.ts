@@ -1,4 +1,4 @@
-import { getStaffOrgId } from "@/lib/auth";
+import { orgIdWithPermission } from "@/lib/auth";
 import { getInsightsData, logAiTrace } from "@/lib/data";
 import { MODEL_CLASSIFY, anthropic, textOf } from "@/lib/anthropic";
 
@@ -9,7 +9,8 @@ export const maxDuration = 20;
 // "What changed this week" — a grounded executive summary of the real ticket
 // movement. Recomputed server-side (never trusts client numbers).
 export async function POST() {
-  const orgId = await getStaffOrgId();
+  // Matches the middleware gate on /ops — role alone isn't enough.
+  const orgId = await orgIdWithPermission("ops.view");
   if (!orgId) return Response.json({ ok: false, error: "Forbidden" }, { status: 403 });
 
   const data = await getInsightsData(orgId);

@@ -10,6 +10,9 @@ export const dynamic = "force-dynamic";
 // whitelisted against the entity's standard fields + its custom-field defs and
 // coerced by type; unknown keys are ignored.
 export async function PATCH(req: NextRequest) {
+  // Any staff member may edit field VALUES on a record (this is inline editing
+  // in the console). `customfields.manage` gates the field *definitions*, which
+  // is a different, admin-level concern handled by /api/admin/custom-fields.
   const orgId = await getStaffOrgId();
   if (!orgId) return Response.json({ ok: false, error: "Forbidden" }, { status: 403 });
 

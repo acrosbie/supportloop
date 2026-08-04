@@ -2,7 +2,7 @@ import { embed } from "@/lib/embeddings";
 import { matchKb } from "@/lib/retrieve";
 import { SIMILARITY_THRESHOLD } from "@/lib/guardrail";
 import { insertEvalRun, logAiTrace, type EvalResultRow } from "@/lib/data";
-import { getStaffOrgId } from "@/lib/auth";
+import { orgIdWithPermission } from "@/lib/auth";
 import { MODEL_CLASSIFY, anthropic, textOf } from "@/lib/anthropic";
 import questions from "@/supabase/seed/eval-questions.json";
 
@@ -24,7 +24,8 @@ type Row = EvalResultRow & { faithful?: boolean | null };
 // context and verify every claim is supported by it (a hallucination check).
 export async function POST() {
   const qs = questions as GoldenQ[];
-  const orgId = await getStaffOrgId();
+  // Matches the middleware gate on /ops — role alone isn't enough.
+  const orgId = await orgIdWithPermission("ops.view");
   if (!orgId) return Response.json({ error: "Forbidden" }, { status: 403 });
   try {
     const embeddings = await embed(
