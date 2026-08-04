@@ -5,12 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Sparkles, X, Headset } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
 import LiveChatRoom from "@/components/LiveChatRoom";
+import LoopClosedNote from "@/components/customer/LoopClosedNote";
+import { streamGrounded, type GroundedSource as Source } from "@/lib/grounded-stream";
 
-interface Source {
-  id: string;
-  title: string;
-  similarity: number;
-}
 interface Msg {
   role: "user" | "assistant";
   content: string;
@@ -74,29 +71,20 @@ export default function ChatWidget({
     setMessages((m) => [...m, { role: "user", content: q }, { role: "assistant", content: "" }]);
     scrollToBottom();
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: q, orgSlug }),
-      });
-      if (!res.ok || !res.body) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || "The assistant is unavailable right now.");
-      }
-      const metaRaw = res.headers.get("x-grounding");
-      const meta = metaRaw ? JSON.parse(metaRaw) : { grounded: false, sources: [], topSimilarity: 0 };
-      setMessages((m) => patchLast(m, { grounded: meta.grounded, confidence: meta.topSimilarity, sources: meta.sources }));
-
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      let acc = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        acc += dec.decode(value, { stream: true });
-        setMessages((m) => patchLast(m, { content: acc }));
-        scrollToBottom();
-      }
+      await streamGrounded(
+        "/api/chat",
+        { message: q, orgSlug },
+        {
+          onMeta: (meta) =>
+            setMessages((m) =>
+              patchLast(m, { grounded: meta.grounded, confidence: meta.topSimilarity, sources: meta.sources })
+            ),
+          onText: (acc) => {
+            setMessages((m) => patchLast(m, { content: acc }));
+            scrollToBottom();
+          },
+        }
+      );
     } catch (e) {
       setMessages((m) => patchLast(m, { content: e instanceof Error ? e.message : "Something went wrong.", error: true }));
     } finally {
@@ -262,6 +250,7 @@ export default function ChatWidget({
                               </Link>
                             ))}
                           </div>
+                          <LoopClosedNote sources={m.sources} articleBase={articleBase} />
                         </div>
                       ) : m.grounded === false ? (
                         <div>

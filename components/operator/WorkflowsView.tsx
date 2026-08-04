@@ -201,8 +201,8 @@ export default function WorkflowsView({ workflows, runs }: { workflows: Wf[]; ru
       )}
 
       <h2 className="mt-8 text-sm font-medium">Recent runs</h2>
-      <div className="mt-3 overflow-hidden rounded-xl border border-border bg-surface">
-        <table className="w-full text-sm">
+      <div className="mt-3 overflow-x-auto rounded-xl border border-border bg-surface">
+        <table className="w-full min-w-[30rem] text-sm">
           <tbody className="divide-y divide-border">
             {runs.map((run) => (
               <tr key={run.id} className="hover:bg-surface-2">

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { retrieve } from "@/lib/retrieve";
 import { decideGrounding } from "@/lib/guardrail";
 import { MODEL_GENERATE, streamMessageText } from "@/lib/anthropic";
-import { logEvent, logAiTrace } from "@/lib/data";
+import { logEvent, logAiTrace, getArticleProvenance } from "@/lib/data";
 import { resolveViewerOrgId, getOrgIdBySlug, getOrgSettings } from "@/lib/org";
 
 export const runtime = "nodejs";
@@ -46,10 +46,19 @@ export async function POST(req: NextRequest) {
     grounded: decision.grounded,
     topSimilarity: decision.topSimilarity,
   });
+  // Attach provenance so the UI can show when an answer came from an article
+  // that a human published off a resolved ticket — the loop visibly closing.
+  const provenance = decision.grounded
+    ? await getArticleProvenance(
+        orgId,
+        decision.sources.map((s) => s.id)
+      )
+    : {};
   const sources = decision.sources.map((s) => ({
     id: s.id,
     title: s.title,
     similarity: Number(s.similarity.toFixed(3)),
+    origin: provenance[s.id] ?? null,
   }));
   const meta = {
     grounded: decision.grounded,

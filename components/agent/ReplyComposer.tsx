@@ -6,15 +6,12 @@ import { Sparkles, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import { streamGrounded, type GroundedSource as Source } from "@/lib/grounded-stream";
 
 interface Canned {
   id: string;
   title: string;
   body: string;
-}
-interface Source {
-  id: string;
-  title: string;
 }
 
 export default function ReplyComposer({
@@ -38,28 +35,17 @@ export default function ReplyComposer({
     setDrafting(true);
     setSources([]);
     try {
-      const res = await fetch("/api/assist", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ticketId }),
-      });
-      if (!res.ok || !res.body) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || "Draft failed");
-      }
-      const metaRaw = res.headers.get("x-grounding");
-      const meta = metaRaw ? JSON.parse(metaRaw) : { sources: [] };
-      setSources(meta.sources || []);
-      setInternal(false);
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      let acc = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        acc += dec.decode(value, { stream: true });
-        setText(acc);
-      }
+      await streamGrounded(
+        "/api/assist",
+        { ticketId },
+        {
+          onMeta: (meta) => {
+            setSources(meta.sources);
+            setInternal(false);
+          },
+          onText: setText,
+        }
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Draft failed");
     } finally {

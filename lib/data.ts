@@ -259,6 +259,52 @@ export async function publishArticle(orgId: string, articleId: string): Promise<
 }
 
 // ---------------------------------------------------------------------------
+// Article provenance
+// ---------------------------------------------------------------------------
+export interface ArticleProvenance {
+  /** 'seed' | 'ticket' | 'community' */
+  source: string;
+  ticketId: string | null;
+  publishedAt: string | null;
+}
+
+/**
+ * Where the cited articles came from, keyed by article id.
+ *
+ * `match_kb` returns only what retrieval needs, so provenance is a small second
+ * lookup rather than a change to the SQL function. It exists so the assistant
+ * can show that an answer came from an article a human just published from a
+ * resolved ticket, which is the moment the whole loop is built around.
+ *
+ * Tolerant by design: provenance is a flourish on top of the answer, so a
+ * failure here must never break the chat response.
+ */
+export async function getArticleProvenance(
+  orgId: string,
+  ids: string[]
+): Promise<Record<string, ArticleProvenance>> {
+  if (!ids.length) return {};
+  try {
+    const { data } = await supabaseAdmin()
+      .from("kb_articles")
+      .select("id,source,created_from_ticket_id,published_at")
+      .eq("org_id", orgId)
+      .in("id", ids);
+    const out: Record<string, ArticleProvenance> = {};
+    for (const r of (data ?? []) as Record<string, unknown>[]) {
+      out[r.id as string] = {
+        source: (r.source as string) ?? "seed",
+        ticketId: (r.created_from_ticket_id as string) ?? null,
+        publishedAt: (r.published_at as string) ?? null,
+      };
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Ops dashboard
 // ---------------------------------------------------------------------------
 export interface MetricSet {

@@ -126,8 +126,10 @@ export default function EvalRunner({ initial }: { initial: EvalSummary | null })
             </div>
           )}
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-border bg-surface">
-            <table className="w-full text-sm">
+          {/* Six columns will not fit a phone. Scroll the table rather than
+              crushing the columns; min-width keeps them readable while scrolled. */}
+          <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-surface">
+            <table className="w-full min-w-[42rem] text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface-2 text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-2.5 font-medium">Golden question</th>
