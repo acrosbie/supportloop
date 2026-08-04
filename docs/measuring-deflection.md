@@ -82,9 +82,9 @@ This is rarely anyone acting in bad faith. It is a team optimizing the thing the
 
 What it does not do: there is no holdout group, no escalation-after-deflection window, no sessionization, and no escalation-intent signal. It reports the bounded, comparable, honest-denominator version, not the causal one, and its denominator still only counts people who engaged.
 
-That gap is the point. A deflection number is not wrong because someone was dishonest. It is wrong because the honest version is harder to compute, easier to argue with, and smaller. The number that can only go up will only go up, and the program will look successful right up until the day somebody asks how it was calculated.
+That gap is the point. A deflection number is not usually wrong because someone was dishonest. It is wrong because the honest version is harder to compute, easier to argue with, and smaller. The number that can only go up will only go up, and the program will look successful right up until someone reconciles it against ticket volume and headcount and finds that neither moved.
 
-Report the one that survives the question.
+Usually that someone is you, a few quarters later.
 
 ---
 
