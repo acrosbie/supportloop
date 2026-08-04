@@ -2,6 +2,28 @@
   "name": "supportloop",
   "version": "0.1.0",
   "private": true,
+  "description": "A multi-tenant AI customer-support platform: grounded RAG self-service, agent assist, an LLM-in-the-loop workflow engine, and the ops analytics that prove deflection moved.",
+  "author": "Aidan Crosbie",
+  "license": "MIT",
+  "homepage": "https://support.aidancrosbie.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acrosbie/supportloop.git"
+  },
+  "keywords": [
+    "ai",
+    "customer-support",
+    "rag",
+    "pgvector",
+    "anthropic",
+    "claude",
+    "nextjs",
+    "multi-tenant",
+    "llm-evals"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
