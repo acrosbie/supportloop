@@ -11,7 +11,6 @@ import {
   FlaskConical,
   Upload,
   Code2,
-  Check,
   LifeBuoy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,39 +38,6 @@ const FEATURES = [
   { icon: ShieldCheck, title: "Tenant isolation by design", body: "Every workspace's data — knowledge, tickets, metrics, retrieval — is fully isolated. Your data answers only your customers." },
 ];
 
-const PRICING = [
-  {
-    name: "Free",
-    price: "$0",
-    cadence: "forever",
-    blurb: "For trying it on a real help center.",
-    features: ["1 workspace", "1 agent seat", "Help center + AI chatbot", "Community Q&A", "Up to 50 AI replies / mo"],
-    cta: "Start free",
-    href: "/signup",
-    highlight: false,
-  },
-  {
-    name: "Team",
-    price: "$49",
-    cadence: "per agent / mo",
-    blurb: "For growing support teams.",
-    features: ["Everything in Free", "Unlimited articles + KB import", "Agent assist + macros", "SLA & routing", "Eval harness", "Ops analytics"],
-    cta: "Start free trial",
-    href: "/signup",
-    highlight: true,
-  },
-  {
-    name: "Business",
-    price: "$99",
-    cadence: "per agent / mo",
-    blurb: "For scale and compliance.",
-    features: ["Everything in Team", "SSO & SCIM", "Audit log & retention controls", "Advanced analytics", "Priority support"],
-    cta: "Talk to us",
-    href: "/signup",
-    highlight: false,
-  },
-];
-
 const DEMO_SURFACES = [
   { href: "/user", icon: LifeBuoy, eyebrow: "Customer", title: "Help Center", body: "The end-customer view: searchable help, an AI chatbot, and community." },
   { href: "/agent", icon: Headset, eyebrow: "Agent", title: "Agent Workspace", body: "The support team's console: triaged inbox, AI-drafted replies, knowledge loop." },
@@ -91,16 +57,15 @@ export default function Home() {
           <nav className="hidden items-center gap-6 text-sm text-muted md:flex">
             <a href="#how" className="hover:text-foreground">How it works</a>
             <a href="#features" className="hover:text-foreground">Features</a>
-            <a href="#pricing" className="hover:text-foreground">Pricing</a>
             <Link href="/about" className="hover:text-foreground">About</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">Sign in</Link>
+              <Link href="/signup">Create a workspace</Link>
             </Button>
             <Button asChild size="sm">
-              <Link href="/signup">
-                Start free <ArrowRight className="h-4 w-4" />
+              <Link href="/login">
+                Open the demo <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -148,16 +113,16 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
-                <Link href="/signup">
-                  Start free <ArrowRight className="h-4 w-4" />
+                <Link href="/login">
+                  Open the demo <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/user">See a live demo</Link>
+                <Link href="/user">Browse the help center</Link>
               </Button>
             </div>
             <p className="mt-5 text-sm text-muted">
-              No credit card ·{" "}
+              One-click sign-in as a customer, an agent, or ops. No signup ·{" "}
               <Link href="/try" className="font-medium text-accent-strong hover:underline">
                 paste your own docs and ask it anything →
               </Link>
@@ -252,7 +217,7 @@ export default function Home() {
               <h2 className="text-xs font-medium uppercase tracking-widest text-muted">See it live</h2>
               <p className="mt-2 max-w-2xl text-2xl font-semibold tracking-tight">Explore a fully seeded workspace.</p>
             </div>
-            <span className="text-sm text-muted">A fully seeded sample workspace.</span>
+            <span className="text-sm text-muted">One-click sign-in, no signup required.</span>
           </div>
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
             {DEMO_SURFACES.map((w) => {
@@ -277,65 +242,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Pricing */}
-        <section id="pricing" className="scroll-mt-20 border-t border-border py-16">
-          <h2 className="text-xs font-medium uppercase tracking-widest text-muted">Pricing</h2>
-          <p className="mt-2 max-w-2xl text-2xl font-semibold tracking-tight">Start free. Grow when it works.</p>
-          <div className="mt-6 grid gap-4 lg:grid-cols-3">
-            {PRICING.map((t) => (
-              <Card
-                key={t.name}
-                className={`relative flex flex-col p-6 ${t.highlight ? "border-accent ring-1 ring-accent" : ""}`}
-              >
-                {t.highlight && (
-                  <span className="absolute -top-2.5 left-6 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-fg">
-                    Most popular
-                  </span>
-                )}
-                <div className="font-medium">{t.name}</div>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-3xl font-semibold tracking-tight">{t.price}</span>
-                  <span className="text-sm text-muted">{t.cadence}</span>
-                </div>
-                <p className="mt-1 text-sm text-muted">{t.blurb}</p>
-                <ul className="mt-4 flex-1 space-y-2">
-                  {t.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-foreground/80">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Button asChild className="mt-6 w-full" variant={t.highlight ? "primary" : "outline"}>
-                  <Link href={t.href}>{t.cta}</Link>
-                </Button>
-              </Card>
-            ))}
-          </div>
-          <p className="mt-4 text-xs text-muted">
-            Illustrative pricing — SupportLoop is a portfolio demo, not a billed product.{" "}
-            <Link href="/about" className="underline hover:text-foreground">
-              Read about the project
-            </Link>
-            .
-          </p>
-        </section>
-
         {/* CTA band */}
         <section className="border-t border-border py-16">
           <Card className="flex flex-col items-center gap-4 overflow-hidden p-10 text-center">
-            <h2 className="max-w-2xl text-3xl font-semibold tracking-tight">Close your support loop.</h2>
+            <h2 className="max-w-2xl text-3xl font-semibold tracking-tight">See the loop close.</h2>
             <p className="max-w-xl text-muted">
-              Spin up a workspace, bring your knowledge, and watch routine questions resolve themselves.
+              Sign in as an agent, resolve a ticket, turn it into a knowledge article, then ask the chatbot the same
+              question again. Or create your own workspace and bring your own docs.
             </p>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
               <Button asChild size="lg">
-                <Link href="/signup">
-                  Start free <ArrowRight className="h-4 w-4" />
+                <Link href="/login">
+                  Open the demo <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/user">See the demo</Link>
+                <Link href="/signup">Create your own workspace</Link>
               </Button>
             </div>
           </Card>
@@ -352,8 +274,15 @@ export default function Home() {
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
             <a href="#features" className="hover:text-foreground">Features</a>
-            <a href="#pricing" className="hover:text-foreground">Pricing</a>
             <Link href="/about" className="hover:text-foreground">About this project</Link>
+            <a
+              href="https://github.com/acrosbie/supportloop"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-foreground"
+            >
+              Source on GitHub
+            </a>
             <Link href="/login" className="hover:text-foreground">Sign in</Link>
           </div>
         </div>

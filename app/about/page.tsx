@@ -51,10 +51,15 @@ export default function AboutPage() {
           A working reference implementation of AI customer support.
         </h1>
         <p className="mt-5 text-lg leading-relaxed text-muted">
-          SupportLoop is a portfolio piece by <span className="font-medium text-foreground">Aidan Crosbie</span> — a
-          customer-experience technology leader moving into AI/automation for CX. It exists to prove one thing end to
-          end: that the entire AI support lifecycle — self-service, agent assist, knowledge generation, and the
-          operator analytics that prove it moved a metric — can be designed <em>and built</em> as one cohesive system.
+          SupportLoop is a portfolio piece by <span className="font-medium text-foreground">Aidan Crosbie</span>. I ran
+          customer self-service at Zoom while it scaled from 10 million to 300 million users, sustaining 90%+ deflection
+          across that curve, so I know what an operator needs from a support AI. This exists to prove the other half:
+          that the entire lifecycle, from self-service through agent assist and knowledge generation to the analytics
+          that prove it moved a metric, can be designed <em>and built</em> as one cohesive system.
+        </p>
+        <p className="mt-4 text-lg leading-relaxed text-muted">
+          Most engineers build the bot. Few also build the operator&apos;s analytics that prove the bot moved a business
+          metric. This builds both.
         </p>
 
         {/* What's real vs fictional */}
@@ -119,6 +124,11 @@ export default function AboutPage() {
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link href="/signup">Create your own workspace</Link>
+          </Button>
+          <Button asChild variant="ghost" size="lg">
+            <a href="https://github.com/acrosbie/supportloop" target="_blank" rel="noreferrer">
+              Read the source
+            </a>
           </Button>
         </section>
         <p className="mt-8 text-sm text-muted">Built by Aidan Crosbie.</p>
