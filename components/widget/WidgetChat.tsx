@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Sparkles } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
 
@@ -26,20 +26,55 @@ function patchLast(arr: Msg[], patch: Partial<Msg>): Msg[] {
   return copy;
 }
 
+interface Identity {
+  name: string;
+  email: string;
+  account: string | null;
+}
+
 /** Standalone, embeddable chat — fills an iframe and is scoped to one workspace. */
 export default function WidgetChat({
   orgName,
   orgSlug,
   accentStyle,
+  identityToken,
 }: {
   orgName: string;
   orgSlug: string;
   accentStyle?: CSSProperties;
+  identityToken?: string;
 }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [identity, setIdentity] = useState<Identity | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Intercom-style handshake: hand the host app's signed token to /api/identify,
+  // which verifies it against the org secret and upserts the customer + account.
+  // Anonymous visitors simply skip this and keep the existing behaviour.
+  useEffect(() => {
+    if (!identityToken) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/identify", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ orgSlug, token: identityToken }),
+        });
+        const j = await res.json();
+        if (!cancelled && res.ok && j.ok) {
+          setIdentity({ name: j.name, email: j.email, account: j.account ?? null });
+        }
+      } catch {
+        /* identity is an enhancement — chat still works anonymously */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [identityToken, orgSlug]);
 
   function scrollToBottom() {
     requestAnimationFrame(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }));
@@ -90,7 +125,7 @@ export default function WidgetChat({
       const res = await fetch("/api/ticket", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: question, orgSlug }),
+        body: JSON.stringify({ message: question, orgSlug, identityToken }),
       });
       const j = await res.json();
       if (!res.ok || !j.ok) throw new Error(j.error || "Could not create ticket");
@@ -108,7 +143,11 @@ export default function WidgetChat({
         </span>
         <div className="leading-tight">
           <div className="text-sm font-semibold">{orgName} Assistant</div>
-          <div className="text-[11px] opacity-90">Replies instantly · from the help center</div>
+          <div className="text-[11px] opacity-90">
+            {identity
+              ? `Signed in as ${identity.name}${identity.account ? ` · ${identity.account}` : ""}`
+              : "Replies instantly · from the help center"}
+          </div>
         </div>
       </div>
 

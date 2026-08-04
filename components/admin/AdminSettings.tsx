@@ -14,6 +14,7 @@ interface Settings {
   community?: boolean;
   webhookSecret?: string;
   apiKey?: string;
+  jwtSecret?: string;
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
@@ -42,7 +43,10 @@ export default function AdminSettings({ initial, slug }: { initial: Settings; sl
   const [community, setCommunity] = useState(initial.community !== false);
   const [webhookSecret, setWebhookSecret] = useState(initial.webhookSecret || "");
   const [apiKey, setApiKey] = useState(initial.apiKey || "");
+  const [jwtSecret, setJwtSecret] = useState(initial.jwtSecret || "");
   const [busy, setBusy] = useState(false);
+  const [testToken, setTestToken] = useState("");
+  const [minting, setMinting] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   async function save() {
@@ -51,7 +55,9 @@ export default function AdminSettings({ initial, slug }: { initial: Settings; sl
       const r = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ settings: { accent, tagline, threshold, domain, assistant, liveChat, community, webhookSecret, apiKey } }),
+        body: JSON.stringify({
+          settings: { accent, tagline, threshold, domain, assistant, liveChat, community, webhookSecret, apiKey, jwtSecret },
+        }),
       });
       const j = await r.json();
       if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
@@ -60,6 +66,27 @@ export default function AdminSettings({ initial, slug }: { initial: Settings; sl
       toast.error(e instanceof Error ? e.message : "Failed");
     } finally {
       setBusy(false);
+    }
+  }
+
+  // Mints a sample token signed with the saved secret, so the handshake can be
+  // exercised without standing up a host app. Requires the secret to be saved.
+  async function mintTestToken() {
+    setMinting(true);
+    try {
+      const r = await fetch("/api/admin/identify-token", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+      setTestToken(j.token as string);
+      toast.success("Test token generated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setMinting(false);
     }
   }
 
@@ -164,6 +191,39 @@ export default function AdminSettings({ initial, slug }: { initial: Settings; sl
           <div>Authorization: Bearer {apiKey || "<api-key>"}</div>
           <div>{`{"email":"sam@acme.com","name":"Sam","account":"Acme"}`}</div>
         </div>
+      </div>
+
+      <div className="space-y-2 border-t border-border pt-4">
+        <span className="text-sm font-medium">End-user identity (JWT)</span>
+        <p className="text-xs text-muted">
+          Sign your logged-in users into your help center as themselves. Your app signs a token with this secret; the
+          help center verifies it and auto-provisions the customer and account. Leave blank to keep visitors anonymous.
+        </p>
+        <input
+          value={jwtSecret}
+          onChange={(e) => setJwtSecret(e.target.value)}
+          placeholder="HS256 signing secret (a long random string)"
+          className="field font-mono text-xs"
+        />
+        <div className="rounded-lg bg-surface-2 p-2.5 font-mono text-[11px] leading-relaxed text-muted">
+          <div className="break-all">POST {origin}/api/identify</div>
+          <div>{`{"orgSlug":"${slug}","token":"<signed-jwt>"}`}</div>
+          <div className="mt-1 opacity-80">{`payload: {"email":"sam@acme.com","name":"Sam","account":"Acme","plan":"Enterprise"}`}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={mintTestToken} disabled={minting}>
+            {minting ? "Generating…" : "Generate test token"}
+          </Button>
+          <span className="text-xs text-muted">Save the secret first.</span>
+        </div>
+        {testToken && (
+          <div className="rounded-lg bg-surface-2 p-2.5 font-mono text-[11px] leading-relaxed text-muted">
+            <div className="mb-1 font-sans text-xs text-foreground/80">
+              Sample token (1h), signed for demo.user@example.com:
+            </div>
+            <div className="break-all">{testToken}</div>
+          </div>
+        )}
       </div>
 
       <Button size="sm" onClick={save} disabled={busy}>

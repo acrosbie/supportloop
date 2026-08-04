@@ -3,7 +3,8 @@ import { createTicketFromChat } from "@/lib/data";
 import { runTicketCreated } from "@/lib/workflows";
 import { runInBackground } from "@/lib/async-run";
 import { getAuth } from "@/lib/auth";
-import { resolveViewerOrgId, getOrgIdBySlug } from "@/lib/org";
+import { resolveViewerOrgId, getOrgIdBySlug, getOrgSettings } from "@/lib/org";
+import { verifyJwt } from "@/lib/jwt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,8 +18,9 @@ export async function POST(req: NextRequest) {
   let orgSlug: string | undefined;
   let email: string | undefined;
   let channel: string | undefined;
+  let identityToken: string | undefined;
   try {
-    ({ message, subject, orgSlug, email, channel } = await req.json());
+    ({ message, subject, orgSlug, email, channel, identityToken } = await req.json());
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -29,12 +31,25 @@ export async function POST(req: NextRequest) {
     const auth = await getAuth();
     const orgId = orgSlug ? await getOrgIdBySlug(orgSlug) : await resolveViewerOrgId();
     if (!orgId) return Response.json({ ok: false, error: "Unknown workspace" }, { status: 404 });
+
+    // An external identity token (the /api/identify handshake) is re-verified
+    // here rather than trusted from the client, so a widget visitor's ticket
+    // attaches to their real customer record and can't be spoofed by body.email.
+    let verifiedEmail: string | null = null;
+    if (typeof identityToken === "string" && identityToken) {
+      const { jwtSecret } = await getOrgSettings(orgId);
+      if (jwtSecret) {
+        const payload = verifyJwt(identityToken, jwtSecret);
+        if (payload && typeof payload.email === "string") verifiedEmail = payload.email.trim() || null;
+      }
+    }
+
     const ticketId = await createTicketFromChat(
       orgId,
       message,
       subject,
       auth?.id ?? null,
-      auth?.email ?? email ?? null,
+      auth?.email ?? verifiedEmail ?? email ?? null,
       channel ?? "chat"
     );
     // Fire the ticket.created workflows (triage, route, draft, extract) AFTER the

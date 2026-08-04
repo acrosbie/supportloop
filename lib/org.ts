@@ -61,6 +61,7 @@ export interface OrgSettings {
   community?: boolean; // show the community section (default true)
   webhookSecret?: string; // bearer secret for the inbound /api/hooks/<slug> webhook
   apiKey?: string; // bearer key for the /api/v1 provisioning API
+  jwtSecret?: string; // HS256 secret for the JWT identity handshake
 }
 
 export async function getOrgSettings(orgId: string): Promise<OrgSettings> {

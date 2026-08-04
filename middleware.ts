@@ -18,13 +18,21 @@ const AI_ROUTES = [
   "/api/try",
 ];
 
+// Public, cookie-less routes that write to the database. Not LLM-backed, so the
+// cost argument doesn't apply, but they're unauthenticated by session and worth
+// throttling on the same per-IP budget. /api/identify upserts customer+account
+// for anyone holding the org's JWT secret.
+const PUBLIC_WRITE_ROUTES = ["/api/identify"];
+
+const RATE_LIMITED_ROUTES = [...AI_ROUTES, ...PUBLIC_WRITE_ROUTES];
+
 // Refreshes the Supabase session on every request and gates the operator areas
 // (/agent, /ops) by role. Role lives in the JWT (app_metadata.role).
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  // Cost guard: rate-limit the LLM routes before doing any auth work.
-  if (AI_ROUTES.some((p) => path.startsWith(p))) {
+  // Cost guard: rate-limit the LLM + public-write routes before any auth work.
+  if (RATE_LIMITED_ROUTES.some((p) => path.startsWith(p))) {
     const ip =
       req.ip ??
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
