@@ -8,6 +8,7 @@ import { embed, embedOne, toVector } from "./embeddings";
 import { matchTickets, type TicketMatch } from "./retrieve";
 import { ENTITY_TABLE, STANDARD_FIELDS, isStandardKey } from "./fields";
 import { firstResponseSla, resolutionSla, activeSla } from "./sla";
+import { deflectionStats, type ConversationCounts, type DeflectionStats } from "./deflection";
 import type {
   KbArticle,
   Ticket,
@@ -261,8 +262,14 @@ export async function publishArticle(orgId: string, articleId: string): Promise<
 // Ops dashboard
 // ---------------------------------------------------------------------------
 export interface MetricSet {
+  /** Tickets in the period. Deflected conversations are NOT tickets. */
   total: number;
-  deflectionRate: number;
+  /**
+   * Conversation-denominated deflection, computed from the `events` stream
+   * rather than from ticket rows. See lib/deflection.ts for why the denominator
+   * is conversations and not tickets.
+   */
+  deflection: DeflectionStats;
   automationRate: number;
   avgCsat: number | null;
 }
@@ -276,33 +283,59 @@ export interface DashboardData {
 
 interface MetricRow {
   status: string;
-  was_deflected: boolean;
   was_ai_assisted: boolean;
   csat: number | null;
   intent: string | null;
   created_at: string;
 }
 
-function summarize(rows: MetricRow[]): MetricSet {
+function summarize(rows: MetricRow[], conversations: ConversationCounts): MetricSet {
   const total = rows.length;
-  const deflected = rows.filter((r) => r.was_deflected || r.status === "deflected").length;
   const ai = rows.filter((r) => r.was_ai_assisted).length;
   const csats = rows.map((r) => r.csat).filter((c): c is number => typeof c === "number");
   return {
     total,
-    deflectionRate: total ? deflected / total : 0,
+    deflection: deflectionStats(conversations),
     automationRate: total ? ai / total : 0,
     avgCsat: csats.length ? csats.reduce((a, b) => a + b, 0) / csats.length : null,
+  };
+}
+
+/**
+ * Counts conversation outcomes from the event stream. `deflection` is logged
+ * when the assistant answers from the KB without a human; `escalation` when a
+ * conversation becomes a ticket. Together they are every conversation the
+ * assistant handled, which is the denominator the deflection rate needs.
+ */
+async function conversationCounts(orgId: string, since?: Date): Promise<ConversationCounts> {
+  let query = supabaseAdmin()
+    .from("events")
+    .select("type,created_at")
+    .eq("org_id", orgId)
+    .in("type", ["deflection", "escalation"]);
+  if (since) query = query.gte("created_at", since.toISOString());
+  const { data, error } = await query;
+  if (error) throw new Error(`conversationCounts: ${error.message}`);
+  const rows = (data ?? []) as { type: string }[];
+  return {
+    deflected: rows.filter((r) => r.type === "deflection").length,
+    escalated: rows.filter((r) => r.type === "escalation").length,
   };
 }
 
 export async function getDashboardData(orgId: string): Promise<DashboardData> {
   const { data, error } = await supabaseAdmin()
     .from("tickets")
-    .select("status,was_deflected,was_ai_assisted,csat,intent,created_at")
+    .select("status,was_ai_assisted,csat,intent,created_at")
     .eq("org_id", orgId);
   if (error) throw new Error(`getDashboardData: ${error.message}`);
-  const rows = (data ?? []) as MetricRow[];
+  // Ticket metrics count tickets. A deflected conversation was answered without
+  // a human and never became one, so it is excluded here and counted instead in
+  // the conversation-level deflection stats below. Seeded history still carries
+  // deflected rows for message/CSAT texture; letting them inflate "ticket
+  // volume" would reproduce exactly the accounting error this dashboard argues
+  // against.
+  const rows = ((data ?? []) as MetricRow[]).filter((r) => r.status !== "deflected");
 
   const midnight = new Date();
   midnight.setHours(0, 0, 0, 0);
@@ -335,9 +368,14 @@ export async function getDashboardData(orgId: string): Promise<DashboardData> {
     .eq("source", "ticket")
     .eq("status", "published");
 
+  const [allConversations, todayConversations] = await Promise.all([
+    conversationCounts(orgId),
+    conversationCounts(orgId, midnight),
+  ]);
+
   return {
-    all: summarize(rows),
-    today: summarize(rows.filter((r) => new Date(r.created_at) >= midnight)),
+    all: summarize(rows, allConversations),
+    today: summarize(rows.filter((r) => new Date(r.created_at) >= midnight), todayConversations),
     volume,
     topIntents,
     kbFromTickets: kbFromTickets ?? 0,

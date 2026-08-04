@@ -7,9 +7,15 @@ import VolumeChart from "./VolumeChart";
 import CountUp from "@/components/CountUp";
 import { cn } from "@/lib/utils";
 
+interface DeflectionStats {
+  deflected: number;
+  escalated: number;
+  conversations: number;
+  rate: number | null;
+}
 interface MetricSet {
   total: number;
-  deflectionRate: number;
+  deflection: DeflectionStats;
   automationRate: number;
   avgCsat: number | null;
 }
@@ -25,11 +31,18 @@ export default function DashboardView({ all, today, volume, topIntents, kbFromTi
   const [scope, setScope] = useState<"all" | "today">("all");
   const m = scope === "all" ? all : today;
 
+  const d = m.deflection;
   const cards: { label: string; value: ReactNode; sub: string; icon: LucideIcon; tone: string }[] = [
-    { label: "Deflection rate", value: <CountUp value={Math.round(m.deflectionRate * 100)} suffix="%" />, sub: "resolved without an agent", icon: ShieldCheck, tone: "bg-success-soft text-success" },
+    {
+      label: "Deflection rate",
+      value: d.rate === null ? "—" : <CountUp value={Math.round(d.rate * 100)} suffix="%" />,
+      sub: d.conversations === 0 ? "no conversations yet" : `${d.deflected} of ${d.conversations} conversations`,
+      icon: ShieldCheck,
+      tone: "bg-success-soft text-success",
+    },
     { label: "Automation rate", value: <CountUp value={Math.round(m.automationRate * 100)} suffix="%" />, sub: "AI-assisted resolutions", icon: Bot, tone: "bg-accent-soft text-accent-strong" },
     { label: "Avg CSAT", value: m.avgCsat != null ? <CountUp value={m.avgCsat} decimals={1} /> : "—", sub: "of 5", icon: Star, tone: "bg-warning-soft text-warning" },
-    { label: scope === "all" ? "Tickets (all time)" : "Tickets today", value: <CountUp value={m.total} />, sub: "across all channels", icon: Inbox, tone: "bg-surface-2 text-muted" },
+    { label: scope === "all" ? "Tickets (all time)" : "Tickets today", value: <CountUp value={m.total} />, sub: "escalations only, excludes deflected", icon: Inbox, tone: "bg-surface-2 text-muted" },
   ];
 
   return (
@@ -73,11 +86,47 @@ export default function DashboardView({ all, today, volume, topIntents, kbFromTi
         })}
       </div>
 
+      {/* The denominator is the whole argument, so it is stated on the page
+          rather than buried in a tooltip. */}
+      <div className="mt-4 rounded-xl border border-border bg-surface p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div className="text-sm font-medium">How deflection is counted</div>
+          <div className="text-xs text-muted">
+            {d.deflected} deflected + {d.escalated} escalated = {d.conversations} conversations
+          </div>
+        </div>
+        <div className="mt-3 flex h-2 w-full overflow-hidden rounded-full bg-surface-2">
+          <div
+            className="h-full bg-success transition-all duration-500"
+            style={{ width: `${d.conversations ? (d.deflected / d.conversations) * 100 : 0}%` }}
+          />
+          <div
+            className="h-full bg-accent transition-all duration-500"
+            style={{ width: `${d.conversations ? (d.escalated / d.conversations) * 100 : 0}%` }}
+          />
+        </div>
+        <div className="mt-2.5 flex flex-wrap gap-4 text-xs text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-success" /> Deflected, no human involved
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-accent" /> Escalated to a ticket
+          </span>
+        </div>
+        <p className="mt-3 max-w-3xl text-xs leading-relaxed text-muted">
+          Counted over <span className="font-medium text-foreground/80">conversations</span>, not tickets. A deflected
+          question never becomes a ticket, so dividing deflections by ticket count divides by a denominator that
+          excludes most of its own numerator: publish a good article and the rate climbs twice, once because more
+          questions deflect and again because fewer tickets open. Every conversation here logs exactly one outcome, so
+          this number stays comparable across weeks.
+        </p>
+      </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="rounded-xl border border-border bg-surface p-5 lg:col-span-2">
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium">Ticket volume</div>
-            <div className="text-xs text-muted">last 14 days</div>
+            <div className="text-xs text-muted">escalations · last 14 days</div>
           </div>
           <div className="mt-3">
             <VolumeChart data={volume} />

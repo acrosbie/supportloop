@@ -21,6 +21,7 @@ Last updated: 2026-08-03
 - **Customers and accounts**: first-class user and account objects (0007), relationship views (a user's tickets, an account's people and tickets), and agent-actions tied to the real customer.
 - **Standard and custom fields** (0008): CRM fields on customers and accounts, plus an admin **custom-field builder** (text / number / select / date / checkbox) for customer, account, ticket and doc, **editable inline** everywhere.
 - **Customer-site control**: live-chat escalation *inside the chatbot* rather than a separate tab, a roomier help center with larger type, per-component toggles (assistant / live chat / community), and custom-domain (CNAME) configuration.
+- **Honest deflection accounting**: the deflection rate is computed from a conversation event stream (`deflected / (deflected + escalated)`), not from ticket rows. Every conversation logs exactly one outcome, the denominator is stated on the dashboard, and ticket metrics exclude deflected conversations so "tickets" means escalations. `lib/deflection.ts`, tested. The ticket-denominated version is unbounded and moves for two reasons at once, which is how the number usually gets overstated.
 - **Rigor**: vitest unit tests and GitHub Actions CI (lint, test, build on every push and PR).
 
 ---

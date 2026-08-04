@@ -361,6 +361,19 @@ function generateTickets(templates: typeof TICKET_TEMPLATES, count: number): { t
     // Customer opening message.
     messages.push({ id: randomUUID(), ticket_id: id, role: "customer", body: sample.body, created_at: created });
 
+    // Every conversation emits exactly one outcome event: the assistant either
+    // deflected it or it escalated to a human. These two events are the
+    // denominator of the deflection rate (see lib/deflection.ts), so emitting
+    // them unconditionally is what keeps that rate honest — an "open" ticket is
+    // still an escalated conversation and has to be counted as one.
+    events.push({
+      id: randomUUID(),
+      type: status === "deflected" ? "deflection" : "escalation",
+      ticket_id: id,
+      meta: { intent: tpl.intent },
+      created_at: created,
+    });
+
     // A reply for anything that got handled.
     if (status === "deflected") {
       messages.push({
@@ -370,7 +383,6 @@ function generateTickets(templates: typeof TICKET_TEMPLATES, count: number): { t
         body: "Here are the steps that resolve this — let me know if anything is unclear.",
         created_at: resolvedAt!,
       });
-      events.push({ id: randomUUID(), type: "deflection", ticket_id: id, meta: { intent: tpl.intent }, created_at: created });
     } else if (status === "resolved") {
       messages.push({
         id: randomUUID(),
@@ -379,10 +391,7 @@ function generateTickets(templates: typeof TICKET_TEMPLATES, count: number): { t
         body: "Thanks for your patience — I've taken care of this. Reach out if you need anything else.",
         created_at: resolvedAt!,
       });
-      events.push({ id: randomUUID(), type: "escalation", ticket_id: id, meta: { intent: tpl.intent }, created_at: created });
       events.push({ id: randomUUID(), type: "resolution", ticket_id: id, meta: { ai_assisted: wasAiAssisted, csat }, created_at: resolvedAt! });
-    } else if (status === "assisted") {
-      events.push({ id: randomUUID(), type: "escalation", ticket_id: id, meta: { intent: tpl.intent }, created_at: created });
     }
   }
 
@@ -413,7 +422,7 @@ function enrichTickets(tickets: GenTicket[], agentId: string | null): void {
 // The deliberately seeded "hero" ticket that travels the whole flywheel in the
 // guided tour. Its topic (meeting transcripts) is NOT in the seeded KB, so it
 // escalates cleanly and, once resolved, becomes a genuinely useful new article.
-function buildHeroTicket(): { ticket: GenTicket; messages: unknown[] } {
+function buildHeroTicket(): { ticket: GenTicket; messages: unknown[]; events: unknown[] } {
   const id = randomUUID();
   const created = new Date(Date.now() - 2 * 3600_000).toISOString();
   const body =
@@ -443,7 +452,13 @@ function buildHeroTicket(): { ticket: GenTicket; messages: unknown[] } {
     resolved_at: null,
   };
   const messages = [{ id: randomUUID(), ticket_id: id, role: "customer", body, created_at: created }];
-  return { ticket, messages };
+  // The hero ticket is the guardrail demo: the assistant declined to guess and
+  // opened a ticket instead. That is an escalated conversation, so it belongs in
+  // the deflection denominator like any other.
+  const events = [
+    { id: randomUUID(), type: "escalation", ticket_id: id, meta: { intent: "Recording" }, created_at: created },
+  ];
+  return { ticket, messages, events };
 }
 
 // ---------------------------------------------------------------------------
@@ -815,6 +830,7 @@ export async function seedDatabase(): Promise<Record<string, number>> {
   hero.ticket.requester_email = "customer@supportloop.demo";
   tickets.push(hero.ticket);
   for (const m of hero.messages) messages.push(m);
+  for (const e of hero.events) events.push(e);
   assignCustomerEmails(tickets, ORBIT_CUSTOMERS);
 
   // Case-management enrichment: priority, tags, SLA, first response, assignment.
