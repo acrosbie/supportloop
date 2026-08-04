@@ -40,11 +40,29 @@ The conversation-denominated formula quietly assumes that every question asked w
 
 So the corrected formula still overstates. It is bounded and comparable, which is a real improvement over the alternative, but it is not the causal truth. Anyone who tells you their deflection number *is* the causal truth either has a holdout group or has not thought about it.
 
+### The denominator has a floor you cannot see
+
+The error runs the other way too, and this one is easier to miss because the corrected formula looks so much more defensible.
+
+"Conversations" only counts people who asked something. Someone who hit the problem, could not find the help center, and quietly churned appears in neither the numerator nor the denominator. The population of people with a problem is always larger than the population of people who engaged, and the gap between them is invisible by construction. Every deflection metric, including the corrected one, is computed over the survivors.
+
+This is not fixable with better arithmetic. It is only visible from the other side: support contact rates against active users, churn surveys, the questions that show up in sales calls and never in tickets. If deflection is climbing while your contact rate per active user is falling faster than your product got simpler, some of that is people giving up before they reach you.
+
+### Deflection also rises when escalation gets worse
+
+This is the one that should actually worry you.
+
+Bury the "talk to a human" link three clicks deep and deflection improves. Add two required fields to the contact form and it improves again. Cut live-chat hours and it improves. The number goes up, the product gets worse, and nothing in the formula can tell those two apart.
+
+This is rarely anyone acting in bad faith. It is a team optimizing the thing they are measured on, which is what teams are supposed to do. But it means deflection is not safe to put on a dashboard by itself, because the cheapest way to move it is to make a human harder to reach. Any metric that improves when you degrade the product will eventually be improved by degrading the product.
+
 ## What actually gets you closer
 
 **Run a holdout.** Withhold the assistant from a random slice of traffic and compare ticket rates between the groups. This is the only clean measurement. It is operationally annoying and politically uncomfortable, because it means deliberately giving some customers a worse experience, and because it can return a number far below what the dashboard was claiming. It is also the only thing that answers the question you are actually asking. If a vendor has never run one, their number is an estimate wearing a lab coat.
 
 **Track escalation-after-deflection.** Did a "deflected" user open a ticket forty minutes later? That was not a deflection. It was a delay, and it is usually worse than an immediate escalation, because you added friction to a contact that was going to happen anyway. This is cheap to measure and almost nobody does it, which tells you something about who the metric is really for.
+
+**Watch for the people trying to leave.** Measure escalation *intent*, not just escalation *events*. The signal is usually already in your data: users typing "agent", "human", "representative", or "talk to someone" into an assistant that keeps cheerfully answering; the same question asked three times with rising terseness; clicks on things that are not links. Those are people hunting for the exit. If that signal climbs while your deflection rate climbs, you are not deflecting. You are trapping. This is also the only cheap check on the friction problem above, because it moves the moment escalation gets harder.
 
 **Never report deflection without satisfaction.** A customer who gave up in frustration and a customer who got a perfect answer look identical in the data. Both are "deflected." Deflection without a paired CSAT or thumbs signal is indistinguishable from abandonment, and abandonment does not disappear. It reappears later as churn, on someone else's dashboard.
 
@@ -62,7 +80,7 @@ So the corrected formula still overstates. It is bounded and comparable, which i
 - Ticket metrics exclude deflected conversations, so "Tickets" means escalations and the volume chart means ticket volume.
 - When nothing was measured, the rate renders as `—` rather than `0%`. An unmeasured period displayed as zero is its own small lie.
 
-What it does not do: there is no holdout group, no escalation-after-deflection window, and no sessionization. It reports the bounded, comparable, honest-denominator version, not the causal one.
+What it does not do: there is no holdout group, no escalation-after-deflection window, no sessionization, and no escalation-intent signal. It reports the bounded, comparable, honest-denominator version, not the causal one, and its denominator still only counts people who engaged.
 
 That gap is the point. A deflection number is not wrong because someone was dishonest. It is wrong because the honest version is harder to compute, easier to argue with, and smaller. The number that can only go up will only go up, and the program will look successful right up until the day somebody asks how it was calculated.
 
