@@ -60,7 +60,7 @@ This is rarely anyone acting in bad faith. It is a team optimizing the thing the
 
 **Run a holdout.** Withhold the assistant from a random slice of traffic and compare ticket rates between the groups. This is the only clean measurement. It is operationally annoying and politically uncomfortable, because it means deliberately giving some customers a worse experience, and because it can return a number far below what the dashboard was claiming. It is also the only thing that answers the question you are actually asking. If a vendor has never run one, their number is an estimate wearing a lab coat.
 
-**Track escalation-after-deflection.** Did a "deflected" user open a ticket forty minutes later? That was not a deflection. It was a delay, and it is usually worse than an immediate escalation, because you added friction to a contact that was going to happen anyway. This is cheap to measure and almost nobody does it, which tells you something about who the metric is really for.
+**Track escalation-after-deflection.** Did a "deflected" user open a ticket forty minutes later? That was not a deflection. It was a delay, and it is usually worse than an immediate escalation, because you added friction to a contact that was going to happen anyway. This is cheap to measure and almost nobody does it, which tells you something about who the metric is really for. It took an afternoon to add here, and it moved the reported number down by several points, which is presumably the reason it is rare.
 
 **Watch for the people trying to leave.** Measure escalation *intent*, not just escalation *events*. The signal is usually already in your data: users typing "agent", "human", "representative", or "talk to someone" into an assistant that keeps cheerfully answering; the same question asked three times with rising terseness; clicks on things that are not links. Those are people hunting for the exit. If that signal climbs while your deflection rate climbs, you are not deflecting. You are trapping. This is also the only cheap check on the friction problem above, because it moves the moment escalation gets harder.
 
@@ -75,12 +75,16 @@ This is rarely anyone acting in bad faith. It is a team optimizing the thing the
 [SupportLoop](https://support.aidancrosbie.com) computes the conversation-denominated version:
 
 - Every conversation logs exactly one outcome event, `deflection` or `escalation`. Not "most" conversations. Every one, including tickets that are still open, because an open ticket is an escalated conversation and dropping it from the denominator inflates the rate.
-- The rate is `deflected / (deflected + escalated)`, in [`lib/deflection.ts`](https://github.com/acrosbie/supportloop/blob/main/lib/deflection.ts), as a pure function with tests. One of those tests asserts the result stays bounded in [0, 1], because the failure mode this whole document is about shows up as a number above 100%.
-- The denominator is printed on the dashboard next to the number, not hidden in a tooltip.
+- The rate is computed in [`lib/deflection.ts`](https://github.com/acrosbie/supportloop/blob/main/lib/deflection.ts), a pure function with tests. One of those tests asserts the result stays bounded in [0, 1], because the failure mode this whole document is about shows up as a number above 100%.
+- **There is a return window.** A visit that got a confident answer and opened a ticket anyway within four hours is not counted as a deflection. That pair is one escalated conversation, not a win plus a loss, so it is collapsed rather than double-counted. Correlation uses a per-tab session id held in `sessionStorage`, which identifies nobody and dies with the tab. Events with no session id never match, so the count is a floor: it under-reports reverts rather than inventing them.
+- The dashboard shows the reported rate **and** what the rate would be without that window, side by side. Hiding the gap would be the same move as hiding the denominator.
+- The denominator is printed on the dashboard next to the number, not in a tooltip.
 - Ticket metrics exclude deflected conversations, so "Tickets" means escalations and the volume chart means ticket volume.
 - When nothing was measured, the rate renders as `—` rather than `0%`. An unmeasured period displayed as zero is its own small lie.
 
-What it does not do: there is no holdout group, no escalation-after-deflection window, no sessionization, and no escalation-intent signal. It reports the bounded, comparable, honest-denominator version, not the causal one, and its denominator still only counts people who engaged.
+What it does not do: there is no holdout group and no escalation-intent signal, and sessionization is only partial — deflect-then-escalate pairs collapse, but a visitor who asks the same question three ways still counts as three conversations. It reports the bounded, comparable, honest-denominator version, not the causal one, and its denominator still only counts people who engaged.
+
+The four-hour window is a judgement call, not a discovered constant. It is a constant in the source with a comment explaining the trade-off, because a threshold nobody can find is a threshold nobody can argue with.
 
 That gap is the point. A deflection number is not usually wrong because someone was dishonest. It is wrong because the honest version is harder to compute, easier to argue with, and smaller. The number that can only go up will only go up, and the program will look successful right up until someone reconciles it against ticket volume and headcount and finds that neither moved.
 

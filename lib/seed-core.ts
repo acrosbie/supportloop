@@ -366,13 +366,29 @@ function generateTickets(templates: typeof TICKET_TEMPLATES, count: number): { t
     // denominator of the deflection rate (see lib/deflection.ts), so emitting
     // them unconditionally is what keeps that rate honest — an "open" ticket is
     // still an escalated conversation and has to be counted as one.
+    const sessionId = randomUUID();
     events.push({
       id: randomUUID(),
       type: status === "deflected" ? "deflection" : "escalation",
       ticket_id: id,
-      meta: { intent: tpl.intent },
+      meta: { intent: tpl.intent, sessionId },
       created_at: created,
     });
+
+    // Some escalations were preceded by a grounded answer the customer came
+    // back from: the assistant answered, they opened a ticket anyway a few
+    // minutes later. Sharing the session id makes that pair recognisable, and
+    // the dashboard subtracts it — those were delays, not deflections.
+    if (status !== "deflected" && Math.random() < 0.15) {
+      const answeredMs = createdMs - Math.floor((5 + Math.random() * 25) * 60_000);
+      events.push({
+        id: randomUUID(),
+        type: "deflection",
+        ticket_id: null,
+        meta: { intent: tpl.intent, sessionId, query: sample.body.slice(0, 120), top: null },
+        created_at: new Date(answeredMs).toISOString(),
+      });
+    }
 
     // A reply for anything that got handled.
     if (status === "deflected") {

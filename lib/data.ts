@@ -8,7 +8,12 @@ import { embed, embedOne, toVector } from "./embeddings";
 import { matchTickets, type TicketMatch } from "./retrieve";
 import { ENTITY_TABLE, STANDARD_FIELDS, isStandardKey } from "./fields";
 import { firstResponseSla, resolutionSla, activeSla } from "./sla";
-import { deflectionStats, type ConversationCounts, type DeflectionStats } from "./deflection";
+import {
+  deflectionStats,
+  REVERT_WINDOW_HOURS,
+  type ConversationCounts,
+  type DeflectionStats,
+} from "./deflection";
 import type {
   KbArticle,
   Ticket,
@@ -107,7 +112,8 @@ export async function createTicketFromChat(
   subject?: string,
   requesterId?: string | null,
   requesterEmail?: string | null,
-  channel: string = "chat"
+  channel: string = "chat",
+  sessionId?: string | null
 ): Promise<string> {
   const id = randomUUID();
   const subj = subject?.trim() || (message.trim().length > 80 ? message.trim().slice(0, 80) + "…" : message.trim());
@@ -142,7 +148,9 @@ export async function createTicketFromChat(
     });
   if (error) throw new Error(`createTicketFromChat: ${error.message}`);
   await supabaseAdmin().from("ticket_messages").insert({ org_id: orgId, ticket_id: id, role: "customer", body: message });
-  await logEvent(orgId, "escalation", id, { source: "chat" });
+  // sessionId pairs this escalation with any earlier deflection from the same
+  // visit, so a "deflection" the customer came back from is not counted as one.
+  await logEvent(orgId, "escalation", id, { source: "chat", sessionId: sessionId ?? null });
   return id;
 }
 
@@ -356,17 +364,67 @@ function summarize(rows: MetricRow[], conversations: ConversationCounts): Metric
 async function conversationCounts(orgId: string, since?: Date): Promise<ConversationCounts> {
   let query = supabaseAdmin()
     .from("events")
-    .select("type,created_at")
+    .select("type,created_at,meta")
     .eq("org_id", orgId)
     .in("type", ["deflection", "escalation"]);
   if (since) query = query.gte("created_at", since.toISOString());
   const { data, error } = await query;
   if (error) throw new Error(`conversationCounts: ${error.message}`);
-  const rows = (data ?? []) as { type: string }[];
+  const rows = (data ?? []) as { type: string; created_at: string; meta: Record<string, unknown> | null }[];
+
   return {
     deflected: rows.filter((r) => r.type === "deflection").length,
     escalated: rows.filter((r) => r.type === "escalation").length,
+    reverted: countReverted(rows),
   };
+}
+
+/**
+ * Deflections the customer came back from: a session that got a grounded answer
+ * and then opened a ticket anyway, inside REVERT_WINDOW_HOURS.
+ *
+ * Those were never deflections. They were delays, and usually worse than an
+ * immediate escalation, because friction was added to a contact that was going
+ * to happen regardless.
+ *
+ * Correlation is done in memory rather than SQL: at demo volume the event table
+ * is small, and keeping it here means the rule is readable next to the maths it
+ * feeds. Events with no session id (anything logged before sessions existed, or
+ * a visitor with storage blocked) simply never match, so the count is a floor
+ * rather than an estimate — it under-reports rather than inventing reverts.
+ */
+function countReverted(rows: { type: string; created_at: string; meta: Record<string, unknown> | null }[]): number {
+  const windowMs = REVERT_WINDOW_HOURS * 3600_000;
+  const sessionOf = (r: { meta: Record<string, unknown> | null }): string | null => {
+    const s = r.meta?.sessionId;
+    return typeof s === "string" && s ? s : null;
+  };
+
+  const escalationsBySession = new Map<string, number[]>();
+  for (const r of rows) {
+    if (r.type !== "escalation") continue;
+    const sid = sessionOf(r);
+    if (!sid) continue;
+    const at = Date.parse(r.created_at);
+    if (Number.isNaN(at)) continue;
+    const list = escalationsBySession.get(sid);
+    if (list) list.push(at);
+    else escalationsBySession.set(sid, [at]);
+  }
+
+  let reverted = 0;
+  for (const r of rows) {
+    if (r.type !== "deflection") continue;
+    const sid = sessionOf(r);
+    if (!sid) continue;
+    const at = Date.parse(r.created_at);
+    if (Number.isNaN(at)) continue;
+    const escalations = escalationsBySession.get(sid);
+    if (!escalations) continue;
+    // The ticket has to come after the answer, and soon enough to be about it.
+    if (escalations.some((e) => e >= at && e - at <= windowMs)) reverted++;
+  }
+  return reverted;
 }
 
 export async function getDashboardData(orgId: string): Promise<DashboardData> {

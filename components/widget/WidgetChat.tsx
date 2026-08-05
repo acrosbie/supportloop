@@ -5,6 +5,7 @@ import { Sparkles } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
 import LoopClosedNote from "@/components/customer/LoopClosedNote";
 import { streamGrounded, type GroundedSource as Source } from "@/lib/grounded-stream";
+import { getSessionId } from "@/lib/session";
 
 interface Msg {
   role: "user" | "assistant";
@@ -87,7 +88,7 @@ export default function WidgetChat({
     try {
       await streamGrounded(
         "/api/chat",
-        { message: q, orgSlug },
+        { message: q, orgSlug, sessionId: getSessionId() },
         {
           onMeta: (meta) =>
             setMessages((m) =>
@@ -113,7 +114,7 @@ export default function WidgetChat({
       const res = await fetch("/api/ticket", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: question, orgSlug, identityToken }),
+        body: JSON.stringify({ message: question, orgSlug, identityToken, sessionId: getSessionId() }),
       });
       const j = await res.json();
       if (!res.ok || !j.ok) throw new Error(j.error || "Could not create ticket");

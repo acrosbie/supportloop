@@ -16,8 +16,9 @@ export const maxDuration = 30;
 export async function POST(req: NextRequest) {
   let message: string;
   let orgSlug: string | undefined;
+  let sessionId: string | undefined;
   try {
-    ({ message, orgSlug } = await req.json());
+    ({ message, orgSlug, sessionId } = await req.json());
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -80,9 +81,15 @@ Never fabricate refund amounts, security policy, or features that aren't in the 
 Knowledge base articles:
 ${context}`;
 
-  // A grounded answer is a deflection (resolved without an agent).
+  // A grounded answer is a deflection (resolved without an agent). The session
+  // id rides along so that a ticket opened later from the same visit can be
+  // recognised as this conversation coming back, not as a separate one.
   if (decision.grounded) {
-    await logEvent(orgId, "deflection", null, { query: message.slice(0, 200), top: sources[0]?.title ?? null });
+    await logEvent(orgId, "deflection", null, {
+      query: message.slice(0, 200),
+      top: sources[0]?.title ?? null,
+      sessionId: typeof sessionId === "string" && sessionId ? sessionId.slice(0, 64) : null,
+    });
   }
 
   const stream = streamMessageText({

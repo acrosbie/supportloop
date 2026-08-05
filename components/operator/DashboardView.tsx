@@ -10,8 +10,10 @@ import { cn } from "@/lib/utils";
 interface DeflectionStats {
   deflected: number;
   escalated: number;
+  reverted: number;
   conversations: number;
   rate: number | null;
+  naiveRate: number | null;
 }
 interface MetricSet {
   total: number;
@@ -92,7 +94,8 @@ export default function DashboardView({ all, today, volume, topIntents, kbFromTi
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div className="text-sm font-medium">How deflection is counted</div>
           <div className="text-xs text-muted">
-            {d.deflected} deflected + {d.escalated} escalated = {d.conversations} conversations
+            {d.deflected} deflected + {d.escalated} escalated
+            {d.reverted > 0 && <> − {d.reverted} returned</>} = {d.conversations} conversations
           </div>
         </div>
         <div className="mt-3 flex h-2 w-full overflow-hidden rounded-full bg-surface-2">
@@ -113,12 +116,32 @@ export default function DashboardView({ all, today, volume, topIntents, kbFromTi
             <span className="h-2 w-2 rounded-full bg-accent" /> Escalated to a ticket
           </span>
         </div>
+        {d.reverted > 0 && d.naiveRate !== null && d.rate !== null && (
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border pt-3">
+            <div>
+              <div className="text-xs text-muted">Reported</div>
+              <div className="text-lg font-semibold tabular-nums text-success">{Math.round(d.rate * 100)}%</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted">Without the return window</div>
+              <div className="text-lg font-semibold tabular-nums text-muted line-through decoration-danger/70">
+                {Math.round(d.naiveRate * 100)}%
+              </div>
+            </div>
+            <p className="max-w-md text-xs leading-relaxed text-muted">
+              <span className="font-medium text-foreground/80">{d.reverted}</span>{" "}
+              {d.reverted === 1 ? "conversation" : "conversations"} got a confident answer and opened a ticket anyway
+              within 4 hours. Those were delays, not deflections, so they are not counted as wins.
+            </p>
+          </div>
+        )}
+
         <p className="mt-3 max-w-3xl text-xs leading-relaxed text-muted">
           Counted over <span className="font-medium text-foreground/80">conversations</span>, not tickets. A deflected
           question never becomes a ticket, so dividing deflections by ticket count divides by a denominator that
           excludes most of its own numerator: publish a good article and the rate climbs twice, once because more
-          questions deflect and again because fewer tickets open. Every conversation here logs exactly one outcome, so
-          this number stays comparable across weeks.
+          questions deflect and again because fewer tickets open. A conversation that deflected and then came back is
+          one escalation, not a win plus a loss, so the pair is collapsed rather than double-counted.
         </p>
       </div>
 

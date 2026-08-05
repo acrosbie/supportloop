@@ -53,6 +53,52 @@ describe("deflectionStats", () => {
   });
 });
 
+describe("deflectionStats — reverts (escalation after deflection)", () => {
+  it("collapses a deflect-then-escalate pair into one escalated conversation", () => {
+    // 60 deflected-only sessions, 10 that deflected then came back, 20 that
+    // escalated straight away. Events: 70 deflections, 30 escalations.
+    // True picture: 60 wins out of 90 distinct conversations.
+    const s = deflectionStats({ deflected: 70, escalated: 30, reverted: 10 });
+    expect(s.conversations).toBe(90);
+    expect(s.rate).toBeCloseTo(60 / 90);
+    expect(s.naiveRate).toBeCloseTo(0.7);
+  });
+
+  it("always reports at or below the naive rate", () => {
+    const s = deflectionStats({ deflected: 70, escalated: 30, reverted: 10 });
+    expect(s.rate!).toBeLessThan(s.naiveRate!);
+  });
+
+  it("is unchanged when nothing reverts", () => {
+    const s = deflectionStats({ deflected: 70, escalated: 30, reverted: 0 });
+    expect(s.rate).toBeCloseTo(s.naiveRate!);
+    expect(s.conversations).toBe(100);
+  });
+
+  it("treats a missing revert count as zero, so old callers are unaffected", () => {
+    const s = deflectionStats({ deflected: 70, escalated: 30 });
+    expect(s.reverted).toBe(0);
+    expect(s.rate).toBeCloseTo(0.7);
+  });
+
+  it("clamps reverts to what the event counts can support", () => {
+    // A revert is both a deflection and an escalation, so it cannot exceed
+    // either. Bad input must not produce a negative rate.
+    const s = deflectionStats({ deflected: 5, escalated: 2, reverted: 99 });
+    expect(s.reverted).toBe(2);
+    expect(s.rate!).toBeGreaterThanOrEqual(0);
+    expect(s.rate!).toBeLessThanOrEqual(1);
+  });
+
+  it("reports 0 when every deflection came back", () => {
+    // Ten conversations, all of which returned as tickets. Nothing deflected.
+    const s = deflectionStats({ deflected: 10, escalated: 10, reverted: 10 });
+    expect(s.conversations).toBe(10);
+    expect(s.rate).toBe(0);
+    expect(s.naiveRate).toBeCloseTo(0.5);
+  });
+});
+
 describe("formatDeflection", () => {
   it("renders no-data as an em space rather than 0%", () => {
     expect(formatDeflection(null)).toBe("—");

@@ -19,8 +19,9 @@ export async function POST(req: NextRequest) {
   let email: string | undefined;
   let channel: string | undefined;
   let identityToken: string | undefined;
+  let sessionId: string | undefined;
   try {
-    ({ message, subject, orgSlug, email, channel, identityToken } = await req.json());
+    ({ message, subject, orgSlug, email, channel, identityToken, sessionId } = await req.json());
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -50,7 +51,8 @@ export async function POST(req: NextRequest) {
       subject,
       auth?.id ?? null,
       auth?.email ?? verifiedEmail ?? email ?? null,
-      channel ?? "chat"
+      channel ?? "chat",
+      typeof sessionId === "string" && sessionId ? sessionId.slice(0, 64) : null
     );
     // Fire the ticket.created workflows (triage, route, draft, extract) AFTER the
     // response — keeps ticket submission snappy; waitUntil keeps it running.
