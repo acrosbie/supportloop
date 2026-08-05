@@ -22,7 +22,7 @@ Last updated: 2026-08-03
 - **Standard and custom fields** (0008): CRM fields on customers and accounts, plus an admin **custom-field builder** (text / number / select / date / checkbox) for customer, account, ticket and doc, **editable inline** everywhere.
 - **Customer-site control**: live-chat escalation *inside the chatbot* rather than a separate tab, a roomier help center with larger type, per-component toggles (assistant / live chat / community), and custom-domain (CNAME) configuration.
 - **Honest deflection accounting**: the deflection rate is computed from a conversation event stream, not from ticket rows. Every conversation logs exactly one outcome, the denominator is stated on the dashboard, and ticket metrics exclude deflected conversations so "tickets" means escalations. A **return window** subtracts deflections the customer came back from within four hours (a delay, not a win), and the dashboard shows that adjusted rate next to the naive one. `lib/deflection.ts`, tested. Written up in [Measuring deflection without fooling yourself](../docs/measuring-deflection.md).
-- **Rigor**: vitest unit tests and GitHub Actions CI (lint, test, build on every push and PR).
+- **Rigor**: vitest unit tests and GitHub Actions CI (lint, test, **eval**, build on every push and PR). The eval step is a real retrieval regression gate: the golden set replayed against recorded vectors (`npm run eval`), so it needs no API key and is deterministic. Hard assertion that no uncovered question may ground, floors on the answer/escalate split, and a fixture-integrity check that fails if the guardrail threshold moves without a re-record.
 
 ---
 

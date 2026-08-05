@@ -68,7 +68,7 @@ Every published article immediately improves retrieval, so the next identical qu
 ## Engineering decisions worth calling out
 
 - **Grounded, or it escalates.** Generation is constrained to retrieved KB. The grounding guardrail (`lib/guardrail.ts`) compares the top cosine similarity to a threshold (**0.60**), and below it the surface escalates to a human instead of inventing a refund or security policy. The threshold was *tuned to the data*: `voyage-3-lite`'s compressed range puts uncovered topics around 0.56 and well-covered ones around 0.62, so 0.60 cleanly separates them.
-- **A real eval harness, not vibes.** `/api/eval` runs a golden set through the actual retrieval pipeline and checks that "answer" questions ground above threshold while "escalate" questions fall below. That is the regression gate you would put on every prompt, model, or KB change. An LLM-as-judge faithfulness check runs alongside it.
+- **A real eval harness, and it actually gates.** `/api/eval` runs a golden set through the live retrieval pipeline and checks that "answer" questions ground above threshold while "escalate" questions fall below, with an LLM-as-judge faithfulness check alongside. The same scoring runs **in CI on every push** (`npm run eval`) against recorded vectors, so it needs no API key, costs nothing per commit, and is deterministic. The assertion with no tolerance is that **no uncovered question may ground**: that is the guardrail's entire job, and a regression there ships a system inventing refund policy. Drop the threshold from 0.60 to 0.35 and the build goes red with five questions named. What the recorded fixture cannot catch, and the README should say so, is a change of embedding model or edits to the KB itself; both need a re-record and the live run.
 - **Deflection counted honestly, over conversations.** This is the metric every support vendor quotes and most of them overstate, so it is worth being precise about. The rate here is `deflected / (deflected + escalated)`, computed from an event stream where **every conversation logs exactly one outcome** (`lib/deflection.ts`, tested). The tempting denominator is ticket count, and it is wrong in a specific way: a deflected question never becomes a ticket, so dividing by tickets divides by a number that excludes most of its own numerator. It is unbounded above, and it moves for two independent reasons at once, since publishing a good article both deflects more questions *and* opens fewer tickets. The dashboard states the denominator on the page rather than hiding it in a tooltip, and "Tickets" there means escalations only. There is also a **return window**: a visit that got a confident answer and opened a ticket anyway within four hours was a delay, not a deflection, so the pair collapses into one escalated conversation and the dashboard shows both the reported rate and the flattering one it replaces. I have watched teams report the flattering version; this is the one that survives being asked how it was computed. Written up in full, including the parts this implementation still gets wrong, in [docs/measuring-deflection.md](docs/measuring-deflection.md).
 - **Multi-tenancy that is actually isolated.** Every table carries `org_id`, and the invariant is enforced structurally: all ~70 exports in `lib/data.ts` take `orgId` as their first argument, and **`match_kb()` is org-scoped in SQL**, so one workspace's chatbot cannot retrieve another's knowledge even if a caller forgets. Postgres RLS sits behind that as defense in depth.
 - **Streaming with a metadata side-channel.** Answers stream token by token via a `ReadableStream`, and the grounding decision (confidence plus cited sources) rides along in an `x-grounding` response header, so the UI renders citations and a confidence state without buffering the response.
@@ -160,7 +160,7 @@ Every published article immediately improves retrieval, so the next identical qu
 
 Built solo, on the side, in about a week of evenings and weekends (six days of commits, which the git history will confirm). The feature list above is the honest scope of what that produced. What it is not is an enterprise deployment, and the gap between the two is mostly the unglamorous parts. Knowing them is half the job:
 
-- **Evals become graded sets per intent**, with regression gates wired into CI on every prompt or model bump. What is here is a single grounded-rate starter plus a faithfulness judge.
+- **Evals become graded sets per intent.** The CI gate here splits answer from escalate and holds a floor on each; a real deployment wants a set per intent (billing, security, account) so a regression in one topic cannot hide behind an average.
 - **PII and safety:** redaction before the model ever sees a message, scoped retention, audit logging. Out of scope against fictional data, mandatory against real data.
 - **Tenant hardening:** RLS policies tightened to the JWT `org_id` beneath the app-level scoping. Today the app runs on the service-role key and the isolation guarantee is the `lib/data.ts` invariant plus org-scoped SQL functions.
 - **Knowledge ingestion at scale:** native Zendesk and Intercom sync, crawl and re-embed on change, a chunking strategy per document type.
@@ -184,9 +184,12 @@ npm run dev
 
 ```bash
 npm test        # vitest unit suites
+npm run eval    # retrieval regression gate (no API key needed)
 npm run lint
 npm run build
 ```
+
+`npm run eval:record` re-records the eval fixture from live embeddings and the seeded KB. Run it when the embedding model or the knowledge base changes; the diff is meant to be reviewed.
 
 **Env (`.env.local`, all server-side except the public Supabase URL and anon key):**
 

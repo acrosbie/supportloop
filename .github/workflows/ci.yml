@@ -17,6 +17,12 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      # Retrieval regression gate. Replays the golden set against recorded
+      # vectors (lib/__tests__/fixtures), so it needs no API key and no
+      # database, and a red run means the grounding decision changed rather
+      # than that a network call was slow. Re-record with npm run eval:record
+      # when the embedding model or the seeded KB changes.
+      - run: npm run eval
       - run: npm run build
         env:
           # The app's pages are dynamic and all AI/DB clients are lazy, so the

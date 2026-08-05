@@ -30,7 +30,9 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval": "vitest run --config vitest.eval.config.ts",
+    "eval:record": "tsx scripts/record-eval-fixture.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
