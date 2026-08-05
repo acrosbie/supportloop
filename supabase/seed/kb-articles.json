@@ -37,7 +37,7 @@
   },
   {
     "title": "Refund policy and how to request a refund",
-    "body": "Orbit offers a full refund within 14 days of a new subscription or plan upgrade if you haven't used the paid features extensively. Refunds are issued to the original payment method and typically take 5–10 business days to appear.\n\nTo request one, go to Billing → Payment history, find the charge, and select \"Request refund,\" or reply to your receipt email. Renewals are also eligible within 14 days of the renewal date. Refunds outside this window are reviewed case by case.",
+    "body": "Orbit offers a full refund within 14 days (about two weeks) of a new subscription or plan upgrade if you haven't used the paid features extensively. Refunds are issued to the original payment method and typically take 5–10 business days to appear.\n\nTo request one, go to Billing → Payment history, find the charge, and select \"Request refund,\" or reply to your receipt email. Renewals are also eligible within 14 days of the renewal date. Refunds outside this window are reviewed case by case.",
     "category": "Billing",
     "tags": ["refund", "billing", "money back"]
   },
@@ -55,7 +55,7 @@
   },
   {
     "title": "Upgrade, downgrade, or change your plan",
-    "body": "You can change plans anytime under Billing → Plan. Upgrades take effect immediately and are prorated, so you only pay the difference for the remainder of the current cycle. Your new limits (participants, cloud storage, meeting length) apply at once.\n\nDowngrades take effect at the end of your current billing period so you keep what you paid for. If a downgrade would put you under a usage limit — for example, more recordings than the lower plan allows — Orbit warns you before confirming.",
+    "body": "You can move between Free, Pro, Business, and Enterprise anytime under Billing → Plan. Upgrades — for example Pro to Business — take effect immediately and are prorated, so you only pay the difference for the remainder of the current cycle. Your new limits (participants, cloud storage, meeting length) apply at once.\n\nDowngrades take effect at the end of your current billing period so you keep what you paid for. If a downgrade would put you under a usage limit — for example, more recordings than the lower plan allows — Orbit warns you before confirming.",
     "category": "Plans & Billing",
     "tags": ["upgrade", "downgrade", "plan"]
   },

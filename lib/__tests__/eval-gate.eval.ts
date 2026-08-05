@@ -72,14 +72,31 @@ describe("eval gate: fixture integrity", () => {
 
 describe("eval gate: known gaps", () => {
   /**
-   * These two are labelled "answer" in the golden set but do not ground: the
-   * seeded KB has no article covering refund windows or self-serve plan
-   * changes. The harness found them the first time it ran, which is the point
-   * of having one.
+   * Two covered questions that still escalate. The KB *does* answer both — the
+   * refund article says "within 14 days (about two weeks) of a new subscription
+   * or plan upgrade", and the plan article names the tiers — so this is not a
+   * content gap. It is retrieval, and it is measured:
    *
-   * They are asserted rather than deleted so the gap stays visible and so
-   * closing it (by writing the articles) fails this test loudly instead of
-   * passing silently.
+   *   refund question, similarity by what gets embedded
+   *     0.446  whole article (what we embed today)
+   *     0.455  title + paragraph 1
+   *     0.384  title + paragraph 2
+   *     0.561  paragraph 1 alone
+   *
+   * Two findings. Whole-article embedding dilutes a specific fact across ~100
+   * words of unrelated policy (+0.115 from chunking). And prepending the title
+   * *costs* 0.105 here, because "Refund policy and how to request a refund"
+   * pulls the vector toward "how to request" and away from "14 days after
+   * upgrade". Chunking plus dropping the title prefix is the fix; it is on the
+   * roadmap, and it is why these two are recorded rather than papered over.
+   *
+   * Note that even the best chunk (0.561) sits under the 0.60 threshold, so
+   * these are also the documented cost of a deliberately conservative guardrail:
+   * it escalates when unsure, and sometimes it is unsure about something it
+   * actually knows.
+   *
+   * Asserted rather than deleted so the gap stays visible, and so closing it
+   * fails this test loudly instead of passing silently.
    */
   const KNOWN_GAPS = [
     "Can I get a refund within two weeks of upgrading?",

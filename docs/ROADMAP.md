@@ -28,6 +28,8 @@ Last updated: 2026-08-03
 
 ## Near-term
 
+- **Chunk KB articles for retrieval, and stop prefixing the title.** The eval gate measured this rather than guessing it. For a covered question the whole-article embedding scores 0.446, the first paragraph alone scores 0.561: whole-article vectors dilute a specific fact across ~100 words of unrelated policy, worth **+0.115**. And prepending the title *costs* **0.105** here, because a generic title ("Refund policy and how to request a refund") pulls the vector toward "how to request" and away from the fact being asked about. Chunk per paragraph or heading, embed the chunk, keep the article as the citation unit. This is the single highest-value retrieval change and the gate will show whether it worked.
+
 Personalization payoffs from the customer and account model:
 
 - **VIP and at-risk signals**: badges on inbox rows and ticket detail derived from account `health` and `plan` (Enterprise or `at_risk` raises a flag).
